@@ -1,3 +1,8 @@
+let overallTokens = {
+    'input': 0,
+    'output': 0,
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const textarea = document.querySelector('textarea');
     
@@ -42,6 +47,12 @@ $('textarea').on('keydown', function(event) {
 
 $('.search-wrapper').click(function(event) {
     $('textarea').focus(); // Focus on the textarea
+    $('.search-wrapper').css('background-color', 'rgb(33, 78, 147)').css('width', '57%')
+});
+
+
+$('textarea').on('blur', function() {
+    $('.search-wrapper').css('background-color', 'rgb(73, 73, 73)')
 });
 
 function disableBar() {
@@ -51,7 +62,7 @@ function disableBar() {
 }
 
 function enableBar() {
-    $('textarea').val('').prop('disabled', false).css('pointer-events', 'all').attr('placeholder', 'Enter a message').css('text-align', 'left');
+    $('textarea').val('').prop('disabled', false).css('pointer-events', 'all').attr('placeholder', 'Enter a message').css('text-align', 'left').focus();
     $('.search-arrow').css('visibility', 'visible');
-    $('.search-wrapper').css('cursor', '').css('background-color', 'rgb(73, 73, 73)')
+    $('.search-wrapper').css('cursor', '').css('background-color', 'rgb(33, 78, 147)')
 }

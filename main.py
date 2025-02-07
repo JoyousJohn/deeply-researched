@@ -60,7 +60,7 @@ class RequestHandler(SimpleHTTPRequestHandler):
             print(f"Received {len(links)} links: {links}")
 
             texts = []
-            for link in links[:3]:
+            for link in links:
                 print(f"Reading url: {link}")
                 link_text = get_text(link)
                 if (len(link_text)) < 300: continue

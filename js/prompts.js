@@ -196,6 +196,35 @@ Do not return any text outside of the JSON object. Only return the raw text JSON
 //     "categories": <an array of integers representing which of the provided categories this text falls into, if any at all>
 
 
+const selectSourcesPrompt = `Task: Analyze a research section description and recommend relevant information sources from a provided dictionary. Return a JSON object with source IDs and/or missing information details. 
+
+Inputs: 
+1. description: String describing the content needed for a paper section. 
+2. sources: Dictionary where keys are numerical source IDs and values are source content descriptions. 
+
+Requirements: 
+1. Return a JSON object containing: - source_ids: List of IDs containing relevant information (if any) 
+- Conditionally include: 
+    - required_info_description: Brief text describing missing information (if sources are insufficient) 
+    - search_term: Search engine query to find missing information (if sources are insufficient) 
+    
+2. Response logic: 
+- Fully covered: Return only source_ids if all required information exists in sources 
+- Partially covered: Return all three keys if some information is missing 
+- No coverage: Return only required_info_description and search_term if no sources are relevant Format Rules: 
+- Output ONLY raw JSON (no markdown, code blocks, or extra text) 
+- Never include explanatory text outside the JSON object 
+- Ensure valid JSON syntax without formatting characters
+
+Example response:
+{
+    "source_ids": "array of ints", // List of source IDs that contain relevant information for the description. Required if at least one source matches the description.
+    "required_info_description": "string", // Required if sources are insufficient or missing information. Describes the specific data still needed.
+    "search_term": "string" // Required if sources are insufficient or missing information. A search engine query to help locate the missing data.
+}
+`
+
+
 const determineIfEnoughInfoPrompt = `You will be provided a description of a paragraph that needs to be written and a large body of source text. Your job will be to determine if the source text contains enough information to reasonably answer and fulfill the requirements from the provided description, even if every minor detail isn't explicitly stated. Consider that some details can be reasonably inferred or expanded from the given context.
 
 Only mark information as missing if it's essential to the core requirements and cannot be reasonably derived or expanded from the provided content. If the source text provides enough foundational information to construct a valid response, even if some minor elaboration would be needed, consider it sufficient.
@@ -222,25 +251,25 @@ You will respond with a JSON object in the following format:
 }`
 
 
-const analyzeArticlesPrompt = `You will be provided the title of a section, its description, and a JSON object containing source material. Write **only the raw content** for this specific section as part of a longer document. Your task is to **extract and analyze only the information directly relevant to the section’s description**. Do **not** summarize or cover all information from the source text. Follow these guidelines:
+const analyzeArticlesPrompt = `You will be provided the title of a section, its description, and a JSON object containing source material. Write **only the raw content** for this specific section as part of a longer document. Your task is to **extract and analyze only the information directly relevant to the section's description**. Do **not** summarize or cover all information from the source text. Follow these guidelines:
 
-1. **Strictly adhere to the section’s description**—only include information that directly addresses the description’s requirements. Ignore anything irrelevant.
+1. **Strictly adhere to the section's description**—only include information that directly addresses the description's requirements. Ignore anything irrelevant.
 2. **Use specific evidence** (examples, quotes, data) from the provided sources to support your points. Do not include unsupported claims or generalizations.
-3. **Analyze patterns, relationships, and themes** relevant to the section’s focus. Avoid broad summaries of the source material.
+3. **Analyze patterns, relationships, and themes** relevant to the section's focus. Avoid broad summaries of the source material.
 4. **Explain complex ideas clearly** and incorporate multiple perspectives where applicable.
 5. **Prioritize depth over breadth**—focus on key insights and their significance, not on covering everything in the source text.
 
 **Strict Rules:**
-- **NO summaries of the source text.** Only extract and analyze what is directly relevant to the section’s description.
+- **NO summaries of the source text.** Only extract and analyze what is directly relevant to the section's description.
 - **NO introductions, conclusions, summaries, or transitions.** Start immediately with analysis.
 - **NO markdown, bullet points, or section titles.** Write in plain prose.
-- **NO filler phrases** (e.g., “This section will discuss…”). Assume the reader is already within the document.
-- **NO extraneous information.** Exclude anything not explicitly tied to the section’s description.
+- **NO filler phrases** (e.g., "This section will discuss…"). Assume the reader is already within the document.
+- **NO extraneous information.** Exclude anything not explicitly tied to the section's description.
 - **Cite specific examples/quotes** from the provided sources. Avoid unsupported claims.
 
 **Output Format:**
 - Raw, continuous text that flows naturally within a larger work. 
-- Directly address the description’s points in detail, using **only the most relevant evidence** from the source material.`
+- Directly address the description's points in detail, using **only the most relevant evidence** from the source material.`
 
 
 // After referencing text from the sources, cite the source ID(s) after the sentence or paragraph by wrapping the source ID number in square brackets.
@@ -251,3 +280,27 @@ const analyzeArticlesPrompt = `You will be provided the title of a section, its 
 // - Include source IDs after the sentences or paragraphs where that information was used
 // - Do not cite source IDs within the sentence, they should appear after the period.
 // - Surround source IDs in square brackets
+
+const checkFulfillsDescriptionPrompt = `You are provided with a required information description, a collection of source descriptions (each being a concise summary of a source's content), and a list of previously attempted search queries. Your task is to determine if the source descriptions collectively fulfill the required information description.
+
+Be lenient in your evaluation:
+- If a source's description suggests it likely contains the required information, consider it sufficient
+- The exact required information doesn't need to be explicitly stated in the description
+- Consider indirect sources that would logically contain the information
+
+If the sources suffice, return exactly the following JSON object:
+{"fulfills": true}
+
+If they do not, return exactly the following JSON object:
+{"fulfills": false, "missing_information": "<a clear, specific description of exactly what essential information is missing>", "search_term": "<a natural search query from a different angle than previously attempted>"}
+
+Guidelines for the search_term:
+- Try a completely different approach or perspective with each new search
+- Consider alternative sources, contexts, or related events that might contain the information
+- Write it as a natural search query that a person would type
+- If previous queries focused on recent sources, try historical ones (or vice versa)
+- If previous queries focused on official sources, try informal ones (or vice versa)
+- If previous queries were about the subject directly, try related people/events/places
+
+Include the list of previously attempted search queries in your reasoning to avoid repetition.
+Respond with raw JSON only, with no additional text or formatting.`;

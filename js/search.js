@@ -1,22 +1,12 @@
-// Global variables to accumulate texts and track processed links
+// Global variables to accumulate texts, track processed links, and track tried search terms
 let globalSourceTexts = "";
 let globalProcessedLinks = new Set();
+let globalTriedSearchTerms = new Set();
 
-async function beginSearches() {
-    newActivity('Getting relevant links');
-    setPhase('findingLinks');
-    
-    const section = plan[0];
-
-    let linksData = await getLinks(section.search_keywords);
-    let links = linksData.result;
-    console.log(links);
-
-    newActivity(`Searching ${links.length} links`);
-
+function appendURLS(links) {
     // Append each link to the UI and mark it as processed
     links.forEach(link => {
-        console.log(link);
+        // console.log(link);
         if (link.startsWith("https")) {
             const linkBase = link.includes('www.')
                 ? link.split('www.')[1].split('/')[0]
@@ -35,31 +25,172 @@ async function beginSearches() {
             globalProcessedLinks.add(link);
         }
     });
+}
+
+async function beginSearches() {
+    newActivity('Getting relevant links');
+    setPhase('findingLinks');
+    
+    const section = plan[0];
+
+    let linksData = await getLinks(section.search_keywords);
+    let links = linksData.result;
+
+    if (links === 429) {
+        newActivity('Too many requests to Google search.')
+        $('.activity-working').removeClass('activity-working').css('color', '#ff3c3c')
+        return;
+    }
+
+    // console.log(links);
+
+    newActivity(`Searching ${links.length} links`);
+
+    appendURLS(links)
     setPhase('fetchingLinks');
 
-    // Fetch texts for the initial links
-    const textsData = await getTexts(links);
+    await getTexts(links);
+
+    const relevantAndNeededSources = await getRelevantAndNeededSources(section.description)
+
+    // console.log(relevantAndNeededSources)
+
+    if (relevantAndNeededSources.required_info_description) {
+
+        const search_term = relevantAndNeededSources.search_term
+
+        newActivity(`I need more information on ${relevantAndNeededSources.required_info_description}`)
+
+        links = await getLinks(search_term)
+        links = links.result
+        newActivity(`Searching ${links.length} links`);
+
+        appendURLS(links)
+
+        // Capture the keys already present in the global `sources`
+        const sourcesBeforeKeys = new Set(Object.keys(sources));
+
+        // Fetch texts for the new links which adds new sources to the global object
+        await getTexts(links);
+
+        // Determine which sources were newly added
+        const newSourceKeys = Object.keys(sources).filter(key => !sourcesBeforeKeys.has(key));
+        const newSources = {};
+        newSourceKeys.forEach(key => {
+            newSources[key] = sources[key];
+        });
+
+        // console.log('newSources: ', newSources)
+
+        await new Promise(resolve => setTimeout(resolve, 10000));
+
+        // Now pass only the new sources to checkIfSourceFulfillsDescription
+        checkIfSourceFulfillsDescription(newSources, relevantAndNeededSources.required_info_description);
+    }
 
     // while (!isEmpty(remainingRequirements)) {
     // }
 
     // Build the text string only for this iteration
-    let initialSourceText = "";
-    textsData.result.forEach(result => {
-        initialSourceText += result.text;
-    });
+    // let initialSourceText = "";
+    // textsData.result.forEach(result => {
+    //     initialSourceText += result.text;
+    // });
 
-    console.log('Initial search text: ', initialSourceText);
-    newActivity(`Analyzing ${textsData.result.length} links`);
+    // console.log('Initial search text: ', initialSourceText);
+    // newActivity(`Analyzing ${textsData.result.length} links`);
 
-    // Begin checking using only the texts from this search iteration
-    globalSourceTexts += initialSourceText
-    checkIfEnoughContext(section, initialSourceText);
+    // // Begin checking using only the texts from this search iteration
+    // globalSourceTexts += initialSourceText
+    // checkIfEnoughContext(section, initialSourceText);
 }
 
 
+async function checkIfSourceFulfillsDescription(candidateSources, requiredDescription) {
+    // Use the global 'sources' variable (accumulated from all getTexts calls)
+    const allSources = sources; 
+    const sourceDescriptions = Object.values(allSources)
+        .map(source => source.description)
+        .filter(desc => desc && desc.trim().length > 0);
+        
+    const triedKeywordsArray = Array.from(globalTriedSearchTerms);
+    // Prepare prompt input combining the required description, collected source descriptions, and previously tried keywords
+    const promptInput = `Required information description: ${requiredDescription}
+Source descriptions: ${JSON.stringify(sourceDescriptions)}
+Previously attempted search terms: ${JSON.stringify(triedKeywordsArray)}`;
+
+    // console.log('requiredDescription: ', requiredDescription);
+    // console.log('sourceDescriptions: ', sourceDescriptions);
+    // console.log('Previously tried search terms: ', triedKeywordsArray);
+
+    const messages_payload = [
+        { role: "system", content: checkFulfillsDescriptionPrompt },
+        { role: "user", content: promptInput }
+    ];
+
+    let data = await sendRequestToDecoder(messages_payload);
+    let response;
+    try {
+        response = JSON.parse(data.choices[0].message.content);
+    } catch (e) {
+        console.error("Error parsing checkIfSourceFulfillsDescription response:", e);
+        // In case of a parsing error, assume the sources do not fulfill the requirement.
+        return false;
+    }
+
+    console.log(response)
+
+    if (response.fulfills === true) {
+        newActivity("New sources fulfill the required description.");
+        return true;
+    } else {
+        newActivity(`Missing information: ${response.missing_information}.`);
+        newActivity(`Searching for more sources using search term: "${response.search_term}"`);
+
+        // Track the search term so it is not reused in subsequent iterations
+        globalTriedSearchTerms.add(response.search_term);
+        
+        // Fetch new links based on the search term provided by the prompt
+        const linksData = await getLinks(response.search_term);
+        // Filter out links that have already been processed
+        let newLinks = linksData.result.filter(link => !globalProcessedLinks.has(link));
+
+        if (newLinks.length === 0) {
+            newActivity("No new links found for additional information.");
+            return false;
+        }
+
+        appendURLS(newLinks);
+
+        newActivity(`Analyzing ${newLinks.length} new websites.`);
+        // Fetch texts from the new links; this will update the global 'sources' object.
+        await getTexts(newLinks);
+
+        await new Promise(resolve => setTimeout(resolve, 10000));
+
+        // Recursively check again with the updated global sources
+        await new Promise(resolve => setTimeout(resolve, 10000));
+        return await checkIfSourceFulfillsDescription(candidateSources, requiredDescription);
+    }
+}
+
+
+
+async function getRelevantAndNeededSources(sectionDescription) {
+    const messages_payload = [
+        { role: "system", content: selectSourcesPrompt },
+        { role: "user", content: `
+            description: ${sectionDescription}
+            sources: ${JSON.stringify(requirements)}
+        ` }
+    ];
+
+    const data = await sendRequestToDecoder(messages_payload);
+    return JSON.parse(data.choices[0].message.content);
+}
+
 async function checkIfEnoughContext(section, currentSourceText) {
-    console.log('Checking context using current search text:', currentSourceText);
+    // console.log('Checking context using current search text:', currentSourceText);
 
     const messages_payload = [
         { role: "system", content: determineIfEnoughInfoPrompt },
@@ -88,6 +219,9 @@ async function checkIfEnoughContext(section, currentSourceText) {
     }
 
     if (!content.has_enough_information) {
+
+        console.log(content)
+
         const keywords = content.search_term;
         newActivity(`We need more information on ${keywords}`);
         const missing_information = content.missing_information;
@@ -108,27 +242,7 @@ async function checkIfEnoughContext(section, currentSourceText) {
 
         newActivity(`Found ${newLinks.length} relevant links`);
 
-        // Append new links to the UI and mark them as processed
-        newLinks.forEach(link => {
-            console.log(link);
-            if (link.startsWith("https")) {
-                const linkBase = link.includes('www.')
-                    ? link.split('www.')[1].split('/')[0]
-                    : link.split('//')[1].split('/')[0];
-                $('.activity-sites').first().append($(`
-                    <div class="flex gap-x-1rem" style="padding: 1rem 0.5rem">
-                        <div class="activity-link-status" data-activity-link-url="${link}">
-                            <div></div>
-                        </div>
-                        <div class="flex flex-col">
-                            <a class="activity-link" target="_blank" href="${link}">${linkBase}</a>
-                            <div class="activity-char-count" data-activity-link-url="${link}"></div>
-                        </div>
-                    </div>
-                `));
-                globalProcessedLinks.add(link);
-            }
-        });
+        appendURLS(newLinks)
 
         newActivity(`Analyzing ${newLinks.length} websites`);
 
@@ -316,7 +430,7 @@ async function getTexts(links) {
 
         // Await inside loop since we are in an async function now
         const description = await categorizeSource(startIndex + index, this_source);
-        console.log(description)
+        // console.log(description)
         categorizations.push(description);
     }
 

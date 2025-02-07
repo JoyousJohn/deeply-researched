@@ -117,6 +117,12 @@ function addTokenUsageToActivity(usage) {
     }
 
     $('.token-count').first().text(usage.prompt_tokens + ' / ' + usage.completion_tokens + ' / ' + usage.total_tokens + ' tokens' + totalTime)
+
+    overallTokens['input'] += usage.prompt_tokens
+    overallTokens['output'] += usage.completion_tokens
+
+    $('.overall-tokens').text(`${overallTokens['input'].toLocaleString()} / ${overallTokens['output'].toLocaleString()} / ${(overallTokens['input'] + overallTokens['output']).toLocaleString()} total tokens`)
+
 }
 
 
