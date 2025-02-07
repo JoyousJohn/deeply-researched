@@ -1,0 +1,113 @@
+<html>
+<head>
+    <title>Open Deep Research</title>
+    <link rel="stylesheet" type="text/css" href="css/style.css">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <script defer src="js/index.js"></script>
+    <script defer src="js/settings.js"></script>
+    <script src="js/prompts.js"></script>
+    <script defer src="js/search.js"></script>
+    <script defer src="js/chain.js"></script>
+    <script defer src="js/status.js"></script>
+    <link href="https://fonts.cdnfonts.com/css/inter-tight" rel="stylesheet">
+</head>
+
+<body>
+
+<div class="body flex tight">
+    <div class="chats flex flex-col content-between">
+        <div class="chat-list">
+
+        </div>
+        <div class="settings">Settings & Keys</div>
+    </div>
+    <div class="main">
+        <div class="model-name">DeepSeek R1</div>
+
+        <div class="name">Deeply Researched</div>
+        
+        <div class="chat-space-wrapper">
+            <div class="chat-space"></div>
+        </div>
+        
+        <div class="search-wrapper">
+            <div class="flex items-center w-full h-full">
+                <textarea placeholder="Research a topic" rows="1"></textarea>
+            </div>
+            <div class="flex items-end h-full">
+                <div class="search-arrow">➜</div>
+            </div>
+        </div>
+    </div>
+    <div class="status flex flex-col">
+
+        <div class="status-options">
+            <div class="status-option status-option-selected">Activity</div>
+            <div class="status-option">Sources</div>
+        </div>
+
+        <div class="flex flex-col content-between flex-grow-1" style="overflow-y: scroll;">
+            <div class="activity flex flex-col"></div>
+        </div>
+
+        <div class="phase"></div>
+
+    </div>
+
+    <div class="settings-wrapper none">
+
+        <div class="settings-x" onclick="$('.settings-wrapper').hide();">✖</div>
+
+        <div class="settings-inner flex flex-col">
+
+            <div class="flex flex-col gap-y-1p5rem">
+                <div class="text-3rem bold">Search Keys</div>
+
+                <div class="flex flex-col">
+                    <div class="white api-key-label">Brave Search</div>
+                    <div class="input-wrapper">
+                        <input type="text" class="api-key-input" placeholder="Enter your Brave Search API key" data-key="braveKey" />
+                        <button class="confirm-button">Save</button>
+                    </div>
+                </div>
+            </div>
+            
+            
+            <div class="flex flex-col gap-y-1p5rem">
+                <div class="text-3rem bold">Model Keys</div>
+
+                <div class="flex flex-col">
+                    <div class="white api-key-label">Reasoning Model (R1/o1/o3)</div>
+                    <div class="input-wrapper-adv">
+                        <input type="text" class="api-key-input" placeholder="Model ID" data-key="reasoningModelId" />
+                        <input type="text" class="api-key-input" placeholder="Base URL" data-key="reasoningBase" />
+                        <input type="text" class="api-key-input" placeholder="API Key" data-key="reasoningKey" />
+                        <button class="confirm-button">Save</button>
+                    </div>
+                </div>
+
+                <div class="flex flex-col">
+                    <div class="white api-key-label">Decoder Model (JSON output support required)</div>
+                    <div class="input-wrapper-adv">
+                        <input type="text" class="api-key-input" placeholder="Model Id" data-key="decoderModelId" />
+                        <input type="text" class="api-key-input" placeholder="Base URL" data-key="decoderBase" />
+                        <input type="text" class="api-key-input" placeholder="API Key" data-key="decoderKey" />
+                        <button class="confirm-button">Save</button>
+                    </div>
+                </div>
+            </div>
+            
+
+            
+
+
+
+            <div class="text-3rem bold">Settings</div>
+        </div>
+    </div>
+
+</div>
+
+</body>
+
+</html>

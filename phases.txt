@@ -1,0 +1,13 @@
+1) confirmingValidTopic: Confirm user's request is researchable. If returns true, set phase to refiningRequest. If false, show the explanation key value from the response to the user
+2) refiningRequest: Generate questions to ask the user to refine the request
+3) refiningQuestionsAsked: Use the answers to the questions to make an overview plan of how to proceed
+
+Activities:
+- waitingForInput: 'Awaiting Input'
+- confirmingValidTopic: 'Confirming the prompt'
+- refiningRequest: 'Narrowing down the topic'
+- refiningQuestionsAsked: 'Asking user to refine request'
+- planningSearches: 'Making a search plan'
+- findingLinks: 'Getting relevant links'
+- fetchingLinks: 'Searching x links'
+- analyzingLinks: 'Analyzing x links'
