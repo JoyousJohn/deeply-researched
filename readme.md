@@ -2,6 +2,8 @@
 
 An open-source implementation of OpenAI's Deep Research that aims to replicate its capabilities through prompt chaining with decoder-based language models. (Reasoning model support coming soon.)
 
+![deeply_researched_preview](https://github.com/user-attachments/assets/cdd885ec-ebc3-4543-9573-ba9c7f750d7f)
+
 ## Overview
 
 Mimicing Deep Research, Deeply Researched is a browser-based tool that enhances traditional language model interactions through iterative self-refinement and automated source attribution. The system breaks down complex queries into subtasks, continuously validates its progress, and incorporates relevant web-sourced information to further explore and generate comprehensive responses.
