@@ -19,7 +19,7 @@
         <div class="chat-list">
 
         </div>
-        <div class="settings">Settings & Keys</div>
+        <div class="settings">Settings & Keys (S)</div>
     </div>
     <div class="main">
         <div class="model-name">DeepSeek R1</div>
@@ -41,6 +41,9 @@
                 <div class="search-arrow">➜</div>
             </div>
         </div>
+
+        <div class="demo-disclaimer">Demo mode active, responses are pre-generated.</div>
+
     </div>
     <div class="status flex flex-col">
 
@@ -72,10 +75,10 @@
                 <div class="text-3rem bold">Search Keys</div>
 
                 <div class="flex flex-col">
-                    <div class="white api-key-label">Brave Search</div>
+                    <div class="white api-key-label">Brave Search (coming soon)</div>
                     <div class="input-wrapper">
-                        <input type="text" class="api-key-input" placeholder="Enter your Brave Search API key" data-key="braveKey" />
-                        <button class="confirm-button">Save</button>
+                        <input type="text" class="api-key-input disabled-input" placeholder="Enter your Brave Search API key" data-key="braveKey" disabled/>
+                        <button class="confirm-button disabled-input" disabled>Save</button>
                     </div>
                 </div>
             </div>
@@ -85,20 +88,37 @@
                 <div class="text-3rem bold">Model Keys</div>
 
                 <div class="flex flex-col">
-                    <div class="white api-key-label">Reasoning Model (R1/o1/o3)</div>
+                    <div class="white api-key-label">Reasoning Model (R1/o1/o3) (coming soon)</div>
                     <div class="input-wrapper-adv">
-                        <input type="text" class="api-key-input" placeholder="Model ID" data-key="reasoningModelId" />
-                        <input type="text" class="api-key-input" placeholder="Base URL" data-key="reasoningBase" />
-                        <input type="text" class="api-key-input" placeholder="API Key" data-key="reasoningKey" />
-                        <button class="confirm-button">Save</button>
+                        <input type="text" class="api-key-input disabled-input" placeholder="Model ID" data-key="reasoningModelId" disabled/>
+                        <input type="text" class="api-key-input disabled-input" placeholder="Base URL" data-key="reasoningBase" disabled/>
+                        <input type="text" class="api-key-input disabled-input" placeholder="API Key" data-key="reasoningKey" disabled/>
+                        <button class="confirm-button disabled-input">Save</button>
                     </div>
                 </div>
 
                 <div class="flex flex-col">
-                    <div class="white api-key-label">Decoder Model (JSON output support required)</div>
+                    <div class="white api-key-label">Decoder Model</div>
                     <div class="input-wrapper-adv">
                         <input type="text" class="api-key-input" placeholder="Model Id" data-key="decoderModelId" />
-                        <input type="text" class="api-key-input" placeholder="Base URL" data-key="decoderBase" />
+
+                        <div class="relative">
+                            <input type="text" class="api-key-input relative" placeholder="Base URL" data-key="decoderBase" />
+                            <div class="base-presets none">
+                                <div class="flex flex-col">
+                                    <div class="preset-base-title">Presets</div>
+                                    <div data-base="https://api.anthropic.com/v1/messages">Anthropic</div>
+                                    <div data-base="https://api.deepinfra.com/v1/openai/chat/completions">Deepinfra</div>
+                                    <div data-base="https://api.fireworks.ai/inference/v1/chat/completions">Fireworks</div>
+                                    <div data-base="https://api.groq.com/openai/v1/chat/completions">Groq</div>
+                                    <div data-base="https://api.hyperbolic.ai/v1/chat/completions">Hyperbolic</div>
+                                    <div data-base="https://api.openai.com/v1/chat/completions">OpenAI</div>
+                                    <div data-base="https://api.sambanova.ai/v1/chat/completions">SambaNova</div>
+                                    <div data-base="https://api.together.xyz/v1/chat/completions">Together</div>
+                                </div>      
+                            </div>
+                        </div>
+
                         <input type="text" class="api-key-input" placeholder="API Key" data-key="decoderKey" />
                         <button class="confirm-button">Save</button>
                     </div>

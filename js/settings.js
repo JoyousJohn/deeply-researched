@@ -13,12 +13,7 @@ let settings = {}
 let decoderModelId, decoderBase, decoderKey
 let braveKey
 
-$(document).ready(function() {
-    if (!localStorage.getItem('settings')) {
-        localStorage.setItem('settings', JSON.stringify(defaultSettings));
-    }
-    settings = JSON.parse(localStorage.getItem('settings'));
-
+function populateInputs() {
     // Load saved settings into input fields
     $('.api-key-input').each(function() {
         const inputKey = $(this).data('key');
@@ -28,6 +23,15 @@ $(document).ready(function() {
             $(this).val('');
         }
     });
+}
+
+$(document).ready(function() {
+    if (!localStorage.getItem('settings')) {
+        localStorage.setItem('settings', JSON.stringify(defaultSettings));
+    }
+    settings = JSON.parse(localStorage.getItem('settings'));
+
+    populateInputs();
 
     $('.confirm-button').on('click', function() {
         const apiKeyInputs = $(this).siblings('.api-key-input');
@@ -62,5 +66,34 @@ $(document).ready(function() {
 $(document).keydown(function(event) {
     if (event.key === "Escape") {
         $('.settings-wrapper').hide();
+        $('.base-presets').hide();
+    }
+    else if (event.key === "S" || event.key === "s") {
+        if ($('.settings-wrapper').is(':visible') && !$(document.activeElement).is('input')) {
+            $('.settings-wrapper').hide();
+        } else if (!$(document.activeElement).is('input')) {
+            $('.settings-wrapper').show();
+            populateInputs();
+
+        }
     }
 });
+
+$('input[data-key="decoderBase"]').click(function() {
+    $('.base-presets').slideDown(100);
+})
+
+$('input[data-key="decoderBase"]').on('input', function() {
+    $('.base-presets').slideUp('fast');
+})
+
+$('.settings-wrapper').click(function(event) {
+    if ($(event.target).data('key') !== 'decoderBase') {
+        $('.base-presets').slideUp('fast');
+    }
+})
+
+$('div[data-base]').click(function() {
+    $('input[data-key="decoderBase"]').val($(this).attr('data-base'))
+    $('.base-presets').slideUp('fast');
+})

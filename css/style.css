@@ -23,6 +23,10 @@ body {
     padding: 1rem;
 }
 
+.relative {
+    position: relative;
+}
+
 .flex {
     display: flex;
 }
@@ -326,6 +330,10 @@ textarea::-webkit-scrollbar {
     margin-top: 0.5rem;
 }
 
+.disabled-input {
+    opacity: 0.5;
+}
+
 .confirm-button {
     background-color: rgb(220, 220, 220);
     border: 2px solid rgb(220, 220, 220);
@@ -355,6 +363,42 @@ textarea::-webkit-scrollbar {
     display: flex;
     align-items: center;
     column-gap: 0.5rem;
+}
+
+.base-presets {
+    position: absolute;
+    font-size: 1.5rem;
+    background-color: rgb(35, 35, 35);
+    color: rgb(225, 225, 225);
+    width: 100%;
+    border: 2px solid #464646;
+    box-sizing: border-box;
+    border-radius: 0.5rem;
+}
+
+.base-presets > div > div {
+    padding: 1rem 2rem;
+    border-bottom: 1px solid #404040;
+    transition: 100ms;
+}
+
+.base-presets > div > div:not(.preset-base-title):hover {
+    cursor: pointer;
+    background-color: #456fbc;
+}
+
+.preset-base-title {
+    background-color: #1e1e1e;
+    text-align: center;
+    color: white;
+    padding: 0.5rem !important;
+}
+
+.demo-disclaimer {
+    font-size: 1.5rem;
+    color: rgb(192, 191, 206);
+    margin-bottom: 1rem;
+    margin-top: -1rem;
 }
 
 .status-options {
