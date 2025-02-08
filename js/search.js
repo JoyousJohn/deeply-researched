@@ -19,6 +19,7 @@ function appendURLS(links) {
                     <div class="flex flex-col">
                         <a class="activity-link" target="_blank" href="${link}">${linkBase}</a>
                         <div class="activity-char-count" data-activity-link-url="${link}"></div>
+                        <div class="activity-errors" data-activity-link-url="${link}"></div>
                     </div>
                 </div>
             `));
@@ -51,7 +52,7 @@ async function beginSearches() {
 
     await getTexts(links);
 
-    const relevantAndNeededSources = await getRelevantAndNeededSources(section.description)
+    let relevantAndNeededSources = await getRelevantAndNeededSources(section.description)
 
     // console.log(relevantAndNeededSources)
 
@@ -59,7 +60,8 @@ async function beginSearches() {
 
         const search_term = relevantAndNeededSources.search_term
 
-        newActivity(`I need more information on ${relevantAndNeededSources.required_info_description}`)
+        newActivity(`\n\nI need more information on ${relevantAndNeededSources.required_info_description}`)
+        newActivity(`Searching phrase: ${relevantAndNeededSources.search_term}`)
 
         links = await getLinks(search_term)
         links = links.result
@@ -85,8 +87,28 @@ async function beginSearches() {
         await new Promise(resolve => setTimeout(resolve, 10000));
 
         // Now pass only the new sources to checkIfSourceFulfillsDescription
-        checkIfSourceFulfillsDescription(newSources, relevantAndNeededSources.required_info_description);
+        await checkIfSourceFulfillsDescription(newSources, relevantAndNeededSources.required_info_description);
     }
+
+    newActivity(`Choosing sources`)
+    addToModalMessage(`\n\nI'm choosing sources relevant to these requirements: ${plan[0].description}`)
+
+    relevantAndNeededSources = await getRelevantAndNeededSources(section.description)
+
+    const required_source_ids = relevantAndNeededSources.source_ids
+
+    newActivity(`Using ${required_source_ids.length} sources`)
+
+    let sourceTexts;
+    required_source_ids.forEach(id => {
+        sourceTexts += sources[id].text + ' '
+    })
+
+    newActivity(`Source text: ${sourceTexts.length.toLocaleString()} chars / ${sourceTexts.split(' ').length.toLocaleString()} words`)
+
+    analyzeSearch(sourceTexts, section);
+
+
 
     // while (!isEmpty(remainingRequirements)) {
     // }
@@ -107,21 +129,17 @@ async function beginSearches() {
 
 
 async function checkIfSourceFulfillsDescription(candidateSources, requiredDescription) {
-    // Use the global 'sources' variable (accumulated from all getTexts calls)
-    const allSources = sources; 
-    const sourceDescriptions = Object.values(allSources)
+    // Use only candidateSources' descriptions (i.e. the new sources) for the check
+    const candidateSourceDescriptions = Object.values(candidateSources)
         .map(source => source.description)
         .filter(desc => desc && desc.trim().length > 0);
         
     const triedKeywordsArray = Array.from(globalTriedSearchTerms);
-    // Prepare prompt input combining the required description, collected source descriptions, and previously tried keywords
+    // Prepare prompt input combining the required description, the new source descriptions, 
+    // and previously tried keywords
     const promptInput = `Required information description: ${requiredDescription}
-Source descriptions: ${JSON.stringify(sourceDescriptions)}
-Previously attempted search terms: ${JSON.stringify(triedKeywordsArray)}`;
-
-    // console.log('requiredDescription: ', requiredDescription);
-    // console.log('sourceDescriptions: ', sourceDescriptions);
-    // console.log('Previously tried search terms: ', triedKeywordsArray);
+                        Source descriptions (new sources): ${JSON.stringify(candidateSourceDescriptions)}
+                        Previously attempted search terms: ${JSON.stringify(triedKeywordsArray)}`;
 
     const messages_payload = [
         { role: "system", content: checkFulfillsDescriptionPrompt },
@@ -138,13 +156,13 @@ Previously attempted search terms: ${JSON.stringify(triedKeywordsArray)}`;
         return false;
     }
 
-    console.log(response)
+    console.log(response);
 
     if (response.fulfills === true) {
         newActivity("New sources fulfill the required description.");
         return true;
     } else {
-        newActivity(`Missing information: ${response.missing_information}.`);
+        newActivity(`Missing information: ${response.missing_information}`);
         newActivity(`Searching for more sources using search term: "${response.search_term}"`);
 
         // Track the search term so it is not reused in subsequent iterations
@@ -161,32 +179,54 @@ Previously attempted search terms: ${JSON.stringify(triedKeywordsArray)}`;
         }
 
         appendURLS(newLinks);
-
         newActivity(`Analyzing ${newLinks.length} new websites.`);
+
+        // Capture the keys before fetching new texts
+        const sourcesBeforeKeys = new Set(Object.keys(sources));
         // Fetch texts from the new links; this will update the global 'sources' object.
         await getTexts(newLinks);
+        // await new Promise(resolve => setTimeout(resolve, 10000));
 
-        await new Promise(resolve => setTimeout(resolve, 10000));
+        // Determine which sources were newly added
+        const newSourceKeys = Object.keys(sources).filter(key => !sourcesBeforeKeys.has(key));
+        const newSources = {};
+        newSourceKeys.forEach(key => {
+            newSources[key] = sources[key];
+        });
 
-        // Recursively check again with the updated global sources
-        await new Promise(resolve => setTimeout(resolve, 10000));
-        return await checkIfSourceFulfillsDescription(candidateSources, requiredDescription);
+        // await new Promise(resolve => setTimeout(resolve, 10000));
+        // Recursively check again—but now only with the newly added sources.
+        return await checkIfSourceFulfillsDescription(newSources, requiredDescription);
     }
 }
 
 
 
 async function getRelevantAndNeededSources(sectionDescription) {
+
+    let sourceDescriptions = {}
+    for (const [key, value] of Object.entries(sources)) {
+        sourceDescriptions[key] = value.description;
+    }
+
     const messages_payload = [
         { role: "system", content: selectSourcesPrompt },
         { role: "user", content: `
             description: ${sectionDescription}
-            sources: ${JSON.stringify(requirements)}
+            sources: ${JSON.stringify(sourceDescriptions)}
         ` }
     ];
 
     const data = await sendRequestToDecoder(messages_payload);
-    return JSON.parse(data.choices[0].message.content);
+    let content = data.choices[0].message.content;
+    try {
+        content = JSON.parse(content);
+    } catch (e) {
+        console.error("Error parsing decoder response:", e);
+        console.log("Response content:", content);
+        throw e;
+    }
+    return content;
 }
 
 async function checkIfEnoughContext(section, currentSourceText) {
@@ -225,7 +265,7 @@ async function checkIfEnoughContext(section, currentSourceText) {
         const keywords = content.search_term;
         newActivity(`We need more information on ${keywords}`);
         const missing_information = content.missing_information;
-        newModelMessageElm();
+        newModelMessageElm(true);
         addToModalMessage(`We're missing some information: ${missing_information}`);
         
         newActivity(`Searching for websites`);
@@ -317,9 +357,9 @@ async function analyzeSearch(searchData, section) {
     const messages_payload = [
         { role: "system", content: analyzeArticlesPrompt },
         { role: "user", content: `
-            The section topic is: ${section_title}
-            The section description is: ${description}
-            The source texts are: ${searchData}}
+            The general subject of this section is: ${section_title}
+            The description of the section and its requirements is: ${description}
+            The entirety of the source text is: ${searchData}}
         ` }
     ];
 
@@ -328,7 +368,7 @@ async function analyzeSearch(searchData, section) {
 
     console.log(content);
     const usage = data.usage;
-    newModelMessageElm(content);
+    newModelMessageElm(true);
     addToModalMessage(content);
     addTokenUsageToActivity(usage);
     newActivity('Drafted the section');
@@ -366,7 +406,9 @@ let sources = {}
 
 
 async function categorizeSource(index, source) {
-    newActivity(`Understanding ${getBaseUrl(source.url)}`)
+    const url = getBaseUrl(source.url)
+
+    newActivity(`Understanding ${url}`)
     const messages_payload = [
         { role: "system", content: categorizeSourcePrompt },
         { role: "user", content: `
@@ -375,14 +417,29 @@ async function categorizeSource(index, source) {
     ]
     const data = await sendRequestToDecoder(messages_payload)
     addTokenUsageToActivity(data.usage)
-    const content = JSON.parse(data.choices[0].message.content);
+    let content;
+    try {
+        content = JSON.parse(data.choices[0].message.content);
+        // Move these lines inside the try block so they only execute on success
+        addToModalMessage(`\n\n${url} contains ${content.description.charAt(0).toLowerCase() + content.description.slice(1)}`)
+        sources[index]['description'] = content.description
+        return content.description
 
-    sources[index]['description'] = content.description
-
-    return content.description
-
-    // sources[index]['categories'] = content.categories
-
+    } catch (error) { 
+        // console.error('Error parsing JSON:', error);
+        $(`div.activity-errors[data-activity-link-url="${source.url}"]`)
+            .removeAttr('data-activity-link-url')
+            .text("Failed to parse");
+        $(`div.activity-link-status[data-activity-link-url="${source.url}"] > div`)
+            .parent()
+            .removeAttr('data-activity-link-url')
+            .find('div')
+            .css('background-color', 'red');
+        globalProcessedLinks.delete(source.url);
+        console.log(`Failed to parse JSON for website: ${url}`)
+        console.log('JSON content:', data.choices[0].message.content);
+        // throw error; // Re-throw the error after logging
+    }
 }
 
 
@@ -418,6 +475,8 @@ async function getTexts(links) {
     let categorizations = [];
     updateActivityLinkColors(data.result, links); // Corrected variable name
 
+    newActivity(`Analyzing ${data.result.length} websites`)
+
     const startIndex = Object.keys(sources).length; // Determine the starting index
     for (let index = 0; index < data.result.length; index++) {
         const source = data.result[index];
@@ -427,6 +486,7 @@ async function getTexts(links) {
             'length': source.length
         };
         sources[startIndex + index] = this_source; // Add to sources
+        $('.status-option-sources').text(`Sources (${Object.keys(sources).length})`)
 
         // Await inside loop since we are in an async function now
         const description = await categorizeSource(startIndex + index, this_source);

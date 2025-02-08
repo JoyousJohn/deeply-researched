@@ -1,6 +1,8 @@
 let overallTokens = {
     'input': 0,
     'output': 0,
+    'cost': 0,
+    'requests': 0
 }
 
 document.addEventListener('DOMContentLoaded', function() {

@@ -3,7 +3,13 @@ import requests
 
 def get_links(keywords):
     try:
-        return [result for result in search(keywords)]
+        # The search function should return full URLs, but let's add validation
+        results = []
+        for result in search(keywords):
+            # Skip any results that don't start with http:// or https://
+            if result.startswith(('http://', 'https://')):
+                results.append(result)
+        return results
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == 429:
             return {'result': 429}

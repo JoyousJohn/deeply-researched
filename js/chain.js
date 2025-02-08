@@ -89,7 +89,7 @@ function nextPhase() {
             docDescStr += `${section.section_title}: ${section.description}`
         })
 
-        console.log(docDescStr)
+        // console.log(docDescStr)
 
         payload['messages'] = [
             {role: "system", content: requiredInfoPrompt},
@@ -116,12 +116,32 @@ function addTokenUsageToActivity(usage) {
         totalTime = ' | ' + totalTime.toFixed(2) + 's'
     }
 
-    $('.token-count').first().text(usage.prompt_tokens + ' / ' + usage.completion_tokens + ' / ' + usage.total_tokens + ' tokens' + totalTime)
+    let cost = '';
+    if (usage.estimated_cost) {
+        cost = usage.estimated_cost.toString().split(/(?<=\.\d*?[1-9])/)[0];
+        cost = ' | $' + cost
+        overallTokens['cost'] += usage.estimated_cost
+        overallTokens['requests']++
+    }
+
+    $('.token-count').first().text(usage.prompt_tokens + ' / ' + usage.completion_tokens + ' / ' + usage.total_tokens + ' tokens' + totalTime + cost)
 
     overallTokens['input'] += usage.prompt_tokens
     overallTokens['output'] += usage.completion_tokens
 
-    $('.overall-tokens').text(`${overallTokens['input'].toLocaleString()} / ${overallTokens['output'].toLocaleString()} / ${(overallTokens['input'] + overallTokens['output']).toLocaleString()} total tokens`)
+    let workingContext = '';
+    let totalWords = ''
+    if (Object.keys(sources).length !== 0) {
+        workingContext = 0;
+        Object.values(sources).forEach(source => {
+            workingContext += source['length'];
+            totalWords += source['text'].split(' ').length
+        })
+        workingContext = workingContext.toLocaleString()
+        workingContext = '<br>Working context: ' + workingContext + `chars / ${totalWords} words`
+    }
+
+    $('.overall-tokens').html(`${overallTokens['input'].toLocaleString()} / ${overallTokens['output'].toLocaleString()} / ${(overallTokens['input'] + overallTokens['output']).toLocaleString()} total tokens <br> $${overallTokens['cost'].toString().split(/(?<=\.\d*?[1-9]\d)/)[0]} / ${overallTokens['requests']} requests ${workingContext}`)
 
 }
 
@@ -181,7 +201,7 @@ function makeRequest(payload) {
         } else if (phase === 'refineTaskWithAnsweredQuestions') {
 
             refinedRequest = context.description;
-            newModelMessageElm();
+            newModelMessageElm(true);
             addToModalMessage('I have generated a research query: ' + refinedRequest)
             addTokenUsageToActivity(usage)
 
@@ -196,9 +216,8 @@ function makeRequest(payload) {
             console.log(sectionTitles)
             const sectionTitlesList = sectionTitles.join(', ').replace(/, ([^,]*)$/, ', and $1');
             
-            newModelMessageElm();
             addToModalMessage(
-                `I have formulated a layout for your report, which will contain the following sections: ${sectionTitlesList}. \n\n` +
+                `\n\nI have formulated a layout for your report, which will contain the following ${plan.length} sections: ${sectionTitlesList}. \n\n` +
                 `I will begin by gathering sources and content required for the ${sectionTitles[0]} section by following this guide: ${plan[0].description}`
             );
             
@@ -239,8 +258,11 @@ function newActivity(activity) {
     $('.activity').prepend($newActivityElm)
 }
 
-function newModelMessageElm() {
+function newModelMessageElm(debug) {
     const $msgElm = $(`<div class="message-wrapper"></div>`)
+    if (debug) {
+        $msgElm.css('color', 'gray')
+    }
     $('.chat-space').append($msgElm)
 }
 

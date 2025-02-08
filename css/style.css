@@ -153,12 +153,12 @@ body {
     height: 100%;
     width: 100%;
     overflow-y: scroll;
-    scrollbar-width: none;
+    /* scrollbar-width: none; */
 }
 
-.chat-space-wrapper::-webkit-scrollbar {
+/* .chat-space-wrapper::-webkit-scrollbar {
     display: none;
-}
+} */
 
 
 .chat-space {
@@ -406,6 +406,11 @@ textarea::-webkit-scrollbar {
     color: #c9c9c9;
 }
 
+.activity-errors {
+    font-size: 1.4rem;
+    color: rgb(245, 79, 79);
+}
+
 .phase {
     font-size: 1.7rem;
     margin: 1rem;
@@ -415,7 +420,7 @@ textarea::-webkit-scrollbar {
 .overall-tokens {
     font-size: 1.5rem;
     color: #fcd971;
-    margin: 0 1rem 1rem 1rem;
+    margin: 1rem;
     text-align: center;
 }
 
