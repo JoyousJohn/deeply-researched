@@ -32,7 +32,7 @@ function appendURLS(links) {
 
 async function beginSearches() {
     setPhase('findingLinks');
-    
+
     let count = 0;
 
     // Loop through all sections in the plan
@@ -40,6 +40,7 @@ async function beginSearches() {
         count++;
 
         newActivity('Finding information for: ' + section.section_title)
+        $('.current-section').text(`Working on section ${count}/${plan.length}`)
 
         let links;
         if (count === 1) {

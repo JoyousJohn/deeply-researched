@@ -19,6 +19,7 @@
         <div class="chat-list">
 
         </div>
+        <a class="github" target="_blank" href="https://github.com/JoyousJohn/deeply-researched">GitHub</a>
         <div class="settings">Settings & Keys (S)</div>
     </div>
     <div class="main">
@@ -29,11 +30,23 @@
             <div class="logo"></div>
         </div>
         
+        <div class="progress-bar none">
+            <div class="flex content-between">
+                <div class="current-section"></div>
+                <div class="runtime"></div>
+            </div>  
+        </div>
+
         <div class="chat-space-wrapper">
             <div class="chat-space"></div>
         </div>
         
         <div class="search-wrapper">
+            <div class="flex items-start h-full">
+                <div class="throbber-wrapper h-full none" style="aspect-ratio: 1;">
+                    <div class="throbber"></div>
+                </div>
+            </div>
             <div class="flex items-center w-full h-full">
                 <textarea placeholder="Research a topic" rows="1"></textarea>
             </div>
@@ -42,7 +55,7 @@
             </div>
         </div>
 
-        <div class="demo-disclaimer">Demo mode active, responses are pre-generated.</div>
+        <!-- <div class="demo-disclaimer">Demo mode active, responses are pre-generated.</div> -->
 
     </div>
     <div class="status flex flex-col">

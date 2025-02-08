@@ -13,6 +13,9 @@ let plan;
 let requirements = {};
 let remainingRequirements = {};
 
+let timer; // Variable to hold the timer interval
+let elapsedTime = 0; // Variable to track elapsed time
+
 setPhase('waitingForInput')
 
 function setPhase(newPhase) {
@@ -50,6 +53,8 @@ function nextPhase() {
         ]
         newActivity('Understanding the request')
         stats['start_time'] = new Date();
+        startTimer()
+        
 
     } else if (phase === 'refiningRequest') {
         payload['messages'] = [
@@ -250,7 +255,9 @@ function makeRequest(payload) {
                 `I will begin by gathering sources and content required for the ${sectionTitles[0]} section by following this guide: ${plan[0].description}`
             );
             
-            newActivity('Planned the sections');
+            $('.current-section').text(`Working on section 1/${sectionTitles.length}`)
+
+            newActivity('Planned an outline');
             addTokenUsageToActivity(usage)
             setPhase('createRequirements')
             nextPhase()
@@ -302,4 +309,20 @@ function addToModalMessage(message) {
         'opacity': '1',
         'transition': 'opacity 0.2s ease-in'
     });
+}
+
+function startTimer() {
+    timer = setInterval(() => {
+        elapsedTime++;
+        updateRuntimeDisplay();
+    }, 1000);
+    setTimeout(() => {
+        $('.progress-bar').fadeIn();   
+    }, 1000);
+}
+
+function updateRuntimeDisplay() {
+    const minutes = Math.floor(elapsedTime / 60);
+    const seconds = elapsedTime % 60;
+    $('.runtime').text(`${minutes}m ${seconds}s`);
 }

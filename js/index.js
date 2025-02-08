@@ -66,6 +66,7 @@ function disableBar() {
     $('textarea').val('Deeply researching...').css('height', '').prop('disabled', true).css('pointer-events', 'none').css('text-align', 'center');
     $('.search-arrow').text('■')
     $('.search-wrapper').css('cursor', 'default').css('background-color', 'rgb(52, 52, 52)')
+    $('.throbber-wrapper').fadeIn();
 }
 
 function enableBar() {
