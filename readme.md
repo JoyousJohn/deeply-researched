@@ -42,5 +42,20 @@ Future, optional, Brave Search API integration will fully eliminate the need for
 2. Configure the following parameters for your OpenAI API-compatible model:
    - Model ID
    - Base URL
-   - API key
+   - API key (saved in browser local storage)
 3. Save your configuration
+
+## Tested Model Results
+
+| Model      | Performane |
+|------------|--------|
+| DeekSeek V3 | Excellent |
+| Llama 3.3 70B Instruct | Great |
+| Llama 3.3 70B Instruct Turbo | Great |
+| Llama 3.1 70B Instruct | Great |
+| Llama 3.1 8B Instruct | Good |
+| Llama 3.1 8B Instruct Turbo | Good |
+| Mistral Small 3 | Adequate |
+| Phi 4 | Incompatible |
+| Llama 3.2 3B Instruct | Incompatible |
+| Llama 3.2 1B Instruct | Incompatible |

@@ -64,13 +64,13 @@ $('textarea').on('blur', function() {
 
 function disableBar() {
     $('textarea').val('Deeply researching...').css('height', '').prop('disabled', true).css('pointer-events', 'none').css('text-align', 'center');
-    $('.search-arrow').css('visibility', 'hidden');
+    $('.search-arrow').text('■')
     $('.search-wrapper').css('cursor', 'default').css('background-color', 'rgb(52, 52, 52)')
 }
 
 function enableBar() {
     $('textarea').val('').prop('disabled', false).css('pointer-events', 'all').attr('placeholder', 'Enter a message').css('text-align', 'left').focus();
-    $('.search-arrow').css('visibility', 'visible');
+    $('.search-arrow').text('➜')
     $('.search-wrapper').css('cursor', '').css('background-color', 'rgb(33, 78, 147)')
 }
 

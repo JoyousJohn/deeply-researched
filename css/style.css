@@ -273,6 +273,7 @@ input {
     font-weight: bold;
     user-select: none;
     transition: 100ms;
+    width: 100%;
 }
 
 .search-arrow:hover {

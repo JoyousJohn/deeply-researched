@@ -122,6 +122,7 @@ async function beginSearches() {
         await analyzeSearch(sourceTexts, section);
     }
 
+    newActivity('Finished the response')
     newModelMessageElm()
 
     finalContent.forEach(section => {
@@ -164,7 +165,7 @@ async function checkIfSourceFulfillsDescription(candidateSources, requiredDescri
     console.log(response);
 
     if (response.fulfills === true) {
-        newActivity("New sources fulfill the required description.");
+        newActivity("Fulfilled section requirements");
         addTokenUsageToActivity(data.usage)
         return true;
     } else {
