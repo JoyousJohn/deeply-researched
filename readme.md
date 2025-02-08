@@ -22,31 +22,25 @@ Deeply Researched has demonstrated comparable results to Deep Research while mai
 
 ## Technical Architecture
 
-The application runs primarily in the browser, utilizing a lightweight Python HTTP server solely for search functionality via the googlesearch-python library. This architecture ensures minimal resource requirements while maintaining robust capabilities. 
+The application runs primarily in the browser, utilizing a lightweight Python HTTP server solely for search functionality via the googlesearch-python library. This architecture ensures minimal resource requirements while maintaining advanced research capabilities. 
 
 Future, optional, Brave Search API integration will fully eliminate the need for a backend and allow functionality from a static HTML file.
 
 ## Installation
 
-1. Clone and extract the repository
+1. Download and extract the repository
 2. Ensure Python is installed on your system
 3. Navigate to the project directory
-4. (Optional) Create and activate a virtual environment: ``py -m venv venv``
-5. Install dependencies:
-``bash
-pip install -r requirements.txt
-``
-6. Start the server:
-``bash 
-python -m http.server
-``
+4. (Optional) Create and activate a virtual environment`
+5. Install dependencies: `` pip install -r requirements.txt ``
+6. Start the server: ``python -m http.server``
 7. Access the interface through index.html in your browser
 
 ## Configuration
 
 1. Access settings the bottom-left corner
-2. Configure the following parameters:
+2. Configure the following parameters for your OpenAI API-compatible model:
    - Model ID
    - Base URL
-   - API key for your OpenAI API-compatible model
+   - API key
 3. Save your configuration
