@@ -3,6 +3,8 @@ let globalSourceTexts = "";
 let globalProcessedLinks = new Set();
 let globalTriedSearchTerms = new Set();
 
+let finalContent = []
+
 function appendURLS(links) {
     // Append each link to the UI and mark it as processed
     links.forEach(link => {
@@ -29,103 +31,106 @@ function appendURLS(links) {
 }
 
 async function beginSearches() {
-    newActivity('Getting relevant links');
     setPhase('findingLinks');
     
-    const section = plan[0];
+    let count = 0;
 
-    let linksData = await getLinks(section.search_keywords);
-    let links = linksData.result;
+    // Loop through all sections in the plan
+    for (const section of plan) {
+        count++;
 
-    if (links === 429) {
-        newActivity('Too many requests to Google search.')
-        $('.activity-working').removeClass('activity-working').css('color', '#ff3c3c')
-        return;
+        newActivity('Finding information for: ' + section.section_title)
+
+        let links;
+        if (count === 1) {
+
+            newActivity('Getting relevant links for: ' + section.section_title);
+
+            let linksData = await getLinks(section.search_keywords);
+            links = linksData.result;
+
+            if (links === 429) {
+                newActivity('Too many requests to Google search.')
+                $('.activity-working').removeClass('activity-working').css('color', '#ff3c3c')
+                return;
+            }
+
+            newActivity(`Searching ${links.length} links`);
+
+            appendURLS(links)
+            setPhase('fetchingLinks');
+
+            await getTexts(links);
+
+        }
+
+        let relevantAndNeededSources = await getRelevantAndNeededSources(section.description)
+
+        // console.log(relevantAndNeededSources)
+
+        if (relevantAndNeededSources.required_info_description) {
+
+            const search_term = relevantAndNeededSources.search_term
+
+            newActivity(`\n\nI need more information on ${relevantAndNeededSources.required_info_description}`)
+            newActivity(`Searching phrase: ${relevantAndNeededSources.search_term}`)
+
+            links = await getLinks(search_term)
+            links = links.result
+            newActivity(`Searching ${links.length} links`);
+
+            appendURLS(links)
+
+            // Capture the keys already present in the global `sources`
+            const sourcesBeforeKeys = new Set(Object.keys(sources));
+
+            // Fetch texts for the new links which adds new sources to the global object
+            await getTexts(links);
+
+            // Determine which sources were newly added
+            const newSourceKeys = Object.keys(sources).filter(key => !sourcesBeforeKeys.has(key));
+            const newSources = {};
+            newSourceKeys.forEach(key => {
+                newSources[key] = sources[key];
+            });
+
+            // console.log('newSources: ', newSources)
+
+            await new Promise(resolve => setTimeout(resolve, 10000));
+
+            // Now pass only the new sources to checkIfSourceFulfillsDescription
+            await checkIfSourceFulfillsDescription(newSources, relevantAndNeededSources.required_info_description);
+        }
+
+        newActivity(`Choosing sources`)
+        addToModalMessage(`\n\nI'm choosing sources relevant to these requirements: ${section.description}`)
+
+        relevantAndNeededSources = await getRelevantAndNeededSources(section.description)
+
+        const required_source_ids = relevantAndNeededSources.source_ids
+
+        newActivity(`Using ${required_source_ids.length} sources`)
+
+        let sourceTexts;
+        required_source_ids.forEach(id => {
+            sourceTexts += sources[id].text + ' '
+        })
+
+        newActivity(`Source text: ${sourceTexts.length.toLocaleString()} chars / ${sourceTexts.split(' ').length.toLocaleString()} words`)
+        newActivity("Drafting the section")
+
+        await analyzeSearch(sourceTexts, section);
     }
 
-    // console.log(links);
+    newModelMessageElm()
 
-    newActivity(`Searching ${links.length} links`);
-
-    appendURLS(links)
-    setPhase('fetchingLinks');
-
-    await getTexts(links);
-
-    let relevantAndNeededSources = await getRelevantAndNeededSources(section.description)
-
-    // console.log(relevantAndNeededSources)
-
-    if (relevantAndNeededSources.required_info_description) {
-
-        const search_term = relevantAndNeededSources.search_term
-
-        newActivity(`\n\nI need more information on ${relevantAndNeededSources.required_info_description}`)
-        newActivity(`Searching phrase: ${relevantAndNeededSources.search_term}`)
-
-        links = await getLinks(search_term)
-        links = links.result
-        newActivity(`Searching ${links.length} links`);
-
-        appendURLS(links)
-
-        // Capture the keys already present in the global `sources`
-        const sourcesBeforeKeys = new Set(Object.keys(sources));
-
-        // Fetch texts for the new links which adds new sources to the global object
-        await getTexts(links);
-
-        // Determine which sources were newly added
-        const newSourceKeys = Object.keys(sources).filter(key => !sourcesBeforeKeys.has(key));
-        const newSources = {};
-        newSourceKeys.forEach(key => {
-            newSources[key] = sources[key];
-        });
-
-        // console.log('newSources: ', newSources)
-
-        await new Promise(resolve => setTimeout(resolve, 10000));
-
-        // Now pass only the new sources to checkIfSourceFulfillsDescription
-        await checkIfSourceFulfillsDescription(newSources, relevantAndNeededSources.required_info_description);
-    }
-
-    newActivity(`Choosing sources`)
-    addToModalMessage(`\n\nI'm choosing sources relevant to these requirements: ${plan[0].description}`)
-
-    relevantAndNeededSources = await getRelevantAndNeededSources(section.description)
-
-    const required_source_ids = relevantAndNeededSources.source_ids
-
-    newActivity(`Using ${required_source_ids.length} sources`)
-
-    let sourceTexts;
-    required_source_ids.forEach(id => {
-        sourceTexts += sources[id].text + ' '
+    finalContent.forEach(section => {
+        addToModalMessage('\n\n\n\n' + section.section_title)
+        addToModalMessage('\n\n' + section.section_content)
     })
-
-    newActivity(`Source text: ${sourceTexts.length.toLocaleString()} chars / ${sourceTexts.split(' ').length.toLocaleString()} words`)
-
-    analyzeSearch(sourceTexts, section);
-
-
-
-    // while (!isEmpty(remainingRequirements)) {
-    // }
-
-    // Build the text string only for this iteration
-    // let initialSourceText = "";
-    // textsData.result.forEach(result => {
-    //     initialSourceText += result.text;
-    // });
-
-    // console.log('Initial search text: ', initialSourceText);
-    // newActivity(`Analyzing ${textsData.result.length} links`);
-
-    // // Begin checking using only the texts from this search iteration
-    // globalSourceTexts += initialSourceText
-    // checkIfEnoughContext(section, initialSourceText);
 }
+
+// }
 
 
 async function checkIfSourceFulfillsDescription(candidateSources, requiredDescription) {
@@ -160,9 +165,11 @@ async function checkIfSourceFulfillsDescription(candidateSources, requiredDescri
 
     if (response.fulfills === true) {
         newActivity("New sources fulfill the required description.");
+        addTokenUsageToActivity(data.usage)
         return true;
     } else {
         newActivity(`Missing information: ${response.missing_information}`);
+        addTokenUsageToActivity(data.usage)
         newActivity(`Searching for more sources using search term: "${response.search_term}"`);
 
         // Track the search term so it is not reused in subsequent iterations
@@ -204,6 +211,8 @@ async function checkIfSourceFulfillsDescription(candidateSources, requiredDescri
 
 async function getRelevantAndNeededSources(sectionDescription) {
 
+    newActivity('Examining current context')
+
     let sourceDescriptions = {}
     for (const [key, value] of Object.entries(sources)) {
         sourceDescriptions[key] = value.description;
@@ -230,89 +239,7 @@ async function getRelevantAndNeededSources(sectionDescription) {
     return content;
 }
 
-async function checkIfEnoughContext(section, currentSourceText) {
-    // console.log('Checking context using current search text:', currentSourceText);
 
-    const messages_payload = [
-        { role: "system", content: determineIfEnoughInfoPrompt },
-        { role: "user", content: `
-            Here are the inputs:
-            - Description of paragraph requirements: ${section.description}
-            - Source text context: ${globalSourceTexts}
-        ` }
-    ];
-
-    let data = await sendRequestToDecoder(messages_payload, true);
-    const usage = data.usage;
-    addTokenUsageToActivity(usage);
-
-    let content;
-    try {
-        content = JSON.parse(data.choices[0].message.content);
-    } catch (e) {
-        console.error("Error parsing decoder response:", e);
-        // In case of parsing error, assume not enough info and use the section keywords as fallback.
-        content = {
-            has_enough_information: false,
-            missing_information: "Unable to parse response",
-            search_term: section.search_keywords
-        };
-    }
-
-    if (!content.has_enough_information) {
-
-        console.log(content)
-
-        const keywords = content.search_term;
-        newActivity(`We need more information on ${keywords}`);
-        const missing_information = content.missing_information;
-        newModelMessageElm(true);
-        addToModalMessage(`We're missing some information: ${missing_information}`);
-        
-        newActivity(`Searching for websites`);
-
-        // Fetch new links based on the new keywords
-        const linksData = await getLinks(keywords);
-        // Filter out links that have already been processed
-        let newLinks = linksData.result.filter(link => !globalProcessedLinks.has(link));
-
-        if (newLinks.length === 0) {
-            newActivity("No new links found for additional information. Stopping further searches.");
-            return;
-        }
-
-        newActivity(`Found ${newLinks.length} relevant links`);
-
-        appendURLS(newLinks)
-
-        newActivity(`Analyzing ${newLinks.length} websites`);
-
-        // Fetch texts for the new links and update their UI elements
-        const newTextsData = await getTexts(newLinks);
-        updateActivityLinkColors(newTextsData.result, newLinks);
-                
-        let newSourceText = "";
-        newTextsData.result.forEach(result => {
-            newSourceText += result.text;
-        });
-        console.log("New search text: ", newSourceText);
-
-        // Optionally, update the global accumulation if needed later.
-        globalSourceTexts += newSourceText;
-
-        // Recurse using only the new search's texts
-        return checkIfEnoughContext(section, newSourceText);
-    } else {
-        // If enough information is found, proceed with analysis.
-        newActivity('Understanding the current context')
-        setPhase('analyzingLinks');
-        analyzeSearch(globalSourceTexts, section);
-    }
-}
-
-
-
-// The other functions remain unchanged:
 
 function sendRequestToDecoder(messages_payload, max_tokens) {
     return new Promise((resolve, reject) => {
@@ -323,6 +250,7 @@ function sendRequestToDecoder(messages_payload, max_tokens) {
             top_p: 0.9,
             // top_k: 40,
             messages: messages_payload,
+            max_tokens: 8192
         };
 
         if (max_tokens) {
@@ -350,7 +278,7 @@ function sendRequestToDecoder(messages_payload, max_tokens) {
 
 
 async function analyzeSearch(searchData, section) {
-    console.log(searchData);
+    // console.log(searchData);
 
     const section_title = section.section_title;
     const description = section.description;
@@ -367,12 +295,18 @@ async function analyzeSearch(searchData, section) {
     const data = await sendRequestToDecoder(messages_payload);
     const content = data.choices[0].message.content;
 
-    console.log(content);
+    finalContent.push({
+        'section_title': section_title,
+        'section_content': content
+    })
+
+    // console.log(content);
     const usage = data.usage;
     newModelMessageElm(true);
-    addToModalMessage(content);
+    addToModalMessage(section_title)
+    addToModalMessage('\n\n ' + content);
+    // newActivity('Drafted the section');
     addTokenUsageToActivity(usage);
-    newActivity('Drafted the section');
 }
 
 

@@ -49,6 +49,7 @@ function nextPhase() {
             {role: "user", content: "The user's query is: " + input}
         ]
         newActivity('Understanding the request')
+        stats['start_time'] = new Date();
 
     } else if (phase === 'refiningRequest') {
         payload['messages'] = [
@@ -129,19 +130,40 @@ function addTokenUsageToActivity(usage) {
     overallTokens['input'] += usage.prompt_tokens
     overallTokens['output'] += usage.completion_tokens
 
+    const current_time = new Date();
+    const timeDifference = current_time - stats['start_time'];
+    let minutes = (timeDifference / (1000 * 60));
+  
+    let rpm = (overallTokens['requests']/minutes).toFixed(1)
+    if (rpm > overallTokens['requests']) {
+        rpm = overallTokens['requests']
+    }
+
     let workingContext = '';
     let totalWords = 0;
+
+    let memoryMapContext = ''
+    let memoryMapWordsLength = 0;
+
     if (Object.keys(sources).length !== 0) {
         workingContext = 0;
         Object.values(sources).forEach(source => {
             workingContext += source['length'];
             totalWords += source['text'].split(' ').length
+
+            if (source['description']) {
+                memoryMapContext += source['description']
+                memoryMapWordsLength += source['description'].split(' ').length
+            }
         })
         workingContext = workingContext.toLocaleString()
-        workingContext = '<br>Working context: ' + workingContext + `chars / ${totalWords.toLocaleString()} words`
+        workingContext = '<br>Source context: ' + workingContext + ` chars / ${totalWords.toLocaleString()} words`
+
+        memoryMapContext =  `<br> Memory map: ` + memoryMapContext.length.toLocaleString() + ` chars / ${memoryMapWordsLength.toLocaleString()} words`
+
     }
 
-    $('.overall-tokens').html(`${overallTokens['input'].toLocaleString()} / ${overallTokens['output'].toLocaleString()} / ${(overallTokens['input'] + overallTokens['output']).toLocaleString()} total tokens <br> $${overallTokens['cost'].toString().split(/(?<=\.\d*?[1-9]\d)/)[0]} / ${overallTokens['requests']} requests ${workingContext}`)
+    $('.overall-tokens').html(`${overallTokens['input'].toLocaleString()} / ${overallTokens['output'].toLocaleString()} / ${(overallTokens['input'] + overallTokens['output']).toLocaleString()} total tokens <br> $${overallTokens['cost'].toString().split(/(?<=\.\d*?[1-9]\d)/)[0]} / ${overallTokens['requests']} requests / ${rpm} RPM${workingContext}${memoryMapContext}`)
 
 }
 
@@ -168,7 +190,7 @@ function makeRequest(payload) {
             throw e;
         }
         const usage = fullResponse.usage
-        console.log("Content: ", context)
+        // console.log("Content: ", context)
     
         if (phase === 'refiningRequest') {
 
@@ -217,10 +239,10 @@ function makeRequest(payload) {
 
 
         } else if (phase === 'createSections') {
-            // For planningSearches, assume the fullResponse is a JSON array
+
             plan = context.sections;
             const sectionTitles = plan.map(section => section.section_title);
-            console.log(sectionTitles)
+            // console.log(sectionTitles)
             const sectionTitlesList = sectionTitles.join(', ').replace(/, ([^,]*)$/, ', and $1');
             
             addToModalMessage(
@@ -263,14 +285,6 @@ function newActivity(activity) {
         <div class="activity-sites flex flex-col"></div>
     </div>`)
     $('.activity').prepend($newActivityElm)
-}
-
-function newModelMessageElm(debug) {
-    const $msgElm = $(`<div class="message-wrapper"></div>`)
-    if (debug) {
-        $msgElm.css('color', 'gray')
-    }
-    $('.chat-space').append($msgElm)
 }
 
 function newModalUserMessage(message) {

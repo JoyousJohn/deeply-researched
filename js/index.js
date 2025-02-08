@@ -5,6 +5,11 @@ let overallTokens = {
     'requests': 0
 }
 
+let stats = {
+    'start_time': undefined,
+    'end_time': undefined
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const textarea = document.querySelector('textarea');
     
@@ -67,4 +72,12 @@ function enableBar() {
     $('textarea').val('').prop('disabled', false).css('pointer-events', 'all').attr('placeholder', 'Enter a message').css('text-align', 'left').focus();
     $('.search-arrow').css('visibility', 'visible');
     $('.search-wrapper').css('cursor', '').css('background-color', 'rgb(33, 78, 147)')
+}
+
+function newModelMessageElm(debug) {
+    const $msgElm = $(`<div class="message-wrapper"></div>`)
+    if (debug) {
+        $msgElm.css('color', 'gray')
+    }
+    $('.chat-space').append($msgElm)
 }

@@ -158,6 +158,25 @@ body {
     position: absolute;
     pointer-events: none;
     z-index: -1;
+    justify-content: center;
+}
+
+.name-text {
+    background-color: #272727;
+    z-index: 1;
+    padding: 0.5rem;
+    box-shadow: 0 0 2rem #272727;
+}
+
+.logo {
+    background-image: url('../img/deeply_researched.png');
+    width: 88%;
+    aspect-ratio: 1;
+    position: absolute;
+    background-repeat: no-repeat;
+    background-size: contain;
+    filter: contrast(0%);
+    opacity: 0.15;
 }
 
 .chat-space-wrapper {

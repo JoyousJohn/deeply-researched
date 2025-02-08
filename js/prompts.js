@@ -280,17 +280,19 @@ Only mark information as missing if it's essential to the core requirements and 
 
 You will respond with a true or false value based on this assessment. Only if truly essential information is missing from the source text, include these additional keys in your response:
 
-1. "missing_information": <a string setence listing only the critical information missing that is required to comply with the description>
+1. "missing_information": a string sentence listing only the critical information missing that is required to comply with the description.
 
-2. "search_term": <construct a search query following these rules:
-   - Write it as a complete question or declarative statement that a human would naturally type into a search engine
-   - Include the main technical concept or topic as the primary subject
-   - Add any necessary qualifiers (version numbers, frameworks, methodologies) immediately after the main concept
-   - Specify the type of content needed (tutorial, comparison, documentation, guide, etc.)
-   - Include a recent year range if the topic is technology-related or rapidly evolving
-   - Place multi-word technical terms or exact phrases in quotes
-   - Keep the query between 5-10 words for optimal search engine performance
-   - Ensure the query focuses on the specific missing information rather than the broader topic>
+2. "search_term": construct a search query following these rules:
+   - Write it as a complete question or declarative statement that a human would naturally type into a search engine like Google to find sources.
+   - Include the main technical concept or topic as the primary subject.
+   - Add any necessary qualifiers (version numbers, frameworks, methodologies) immediately after the main concept.
+   - Specify the type of content needed (tutorial, comparison, documentation, guide, etc.) if applicable.
+   - Include a recent year range if the topic is technology-related or rapidly evolving.
+   - Place multi-word technical terms or exact phrases in quotes.
+   - Keep the query between 5-10 words for optimal search engine performance.
+   - Ensure the query focuses on the specific missing information rather than the broader topic.
+   - Additionally, if multiple search terms have already been attempted previously, the query should adopt a broader and more general approach to increase the likelihood of finding relevant sources while still reflecting the essence of the missing information.
+   - Do not mix unrelated categories or combine multiple distinct technical topics in the search query. The search term must solely target the core missing information and should resemble a natural Google search input, not an academic paper title.
 
 You will respond with a JSON object in the following format:
 {
