@@ -48,14 +48,14 @@ function nextPhase() {
             {role: "system", content: isResearchTopic},
             {role: "user", content: "The user's query is: " + input}
         ]
-        newActivity('Validating the prompt as a research request')
+        newActivity('Understanding the request')
 
     } else if (phase === 'refiningRequest') {
         payload['messages'] = [
             {role: "system", content: narrowQuestionPrompt},
             {role: "user", content: "The user's research query is: " + input}
         ]
-        newActivity('Generating questions to narrow down the prompt');
+        newActivity('Generating questions to narrow the task');
     
     }  else if (phase === 'refiningQuestionsAsked') {
 
@@ -70,7 +70,7 @@ function nextPhase() {
 
         setPhase('refineTaskWithAnsweredQuestions')
         newActivity('User answered refining questions');
-        newActivity("Refining task based on user's prompt and answers");
+        newActivity("Refining the task");
     
 
     } else if (phase === 'createSections') {
@@ -79,7 +79,7 @@ function nextPhase() {
             {role: "user", content: `Research query: ${refinedRequest}`}
         ]
 
-        newActivity('Creating a search plan with sections');
+        newActivity('Creating a search plan');
     
     } else if (phase === 'createRequirements') {
 
@@ -130,7 +130,7 @@ function addTokenUsageToActivity(usage) {
     overallTokens['output'] += usage.completion_tokens
 
     let workingContext = '';
-    let totalWords = ''
+    let totalWords = 0;
     if (Object.keys(sources).length !== 0) {
         workingContext = 0;
         Object.values(sources).forEach(source => {
@@ -138,7 +138,7 @@ function addTokenUsageToActivity(usage) {
             totalWords += source['text'].split(' ').length
         })
         workingContext = workingContext.toLocaleString()
-        workingContext = '<br>Working context: ' + workingContext + `chars / ${totalWords} words`
+        workingContext = '<br>Working context: ' + workingContext + `chars / ${totalWords.toLocaleString()} words`
     }
 
     $('.overall-tokens').html(`${overallTokens['input'].toLocaleString()} / ${overallTokens['output'].toLocaleString()} / ${(overallTokens['input'] + overallTokens['output']).toLocaleString()} total tokens <br> $${overallTokens['cost'].toString().split(/(?<=\.\d*?[1-9]\d)/)[0]} / ${overallTokens['requests']} requests ${workingContext}`)
@@ -159,7 +159,14 @@ function makeRequest(payload) {
     .then(fullResponse => {
         // console.log('Full response received:', fullResponse);
 
-        const context = JSON.parse(fullResponse.choices[0].message.content)
+        let context;
+        try {
+            context = JSON.parse(fullResponse.choices[0].message.content);
+        } catch (e) {
+            console.error("Error parsing JSON response:", e);
+            console.log("Full response JSON:", fullResponse);
+            throw e;
+        }
         const usage = fullResponse.usage
         console.log("Content: ", context)
     
@@ -177,14 +184,14 @@ function makeRequest(payload) {
 
             addTokenUsageToActivity(usage)
             setPhase('refiningQuestionsAsked')
-            newActivity('Asking user to refine request');
+            newActivity('Asking user to refine their request');
             enableBar();
 
         } else if (phase === 'confirmingValidTopic') {
 
             if (context.is_valid_request === true) {
                 addTokenUsageToActivity(usage)
-                newActivity('Request validated');
+                newActivity('Request confirmed');
                 setPhase('refiningRequest');
                 nextPhase();
                 researchRequest = input;

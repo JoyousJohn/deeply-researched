@@ -42,6 +42,12 @@ $(document).ready(function() {
         });
 
         localStorage.setItem('settings', JSON.stringify(settings));
+
+        $('.saved-message').slideDown('fast');
+        setTimeout(function() {
+            $('.saved-message').slideUp('fast');
+        }, 3000);
+
     });
 
     decoderModelId = settings['decoderModelId']

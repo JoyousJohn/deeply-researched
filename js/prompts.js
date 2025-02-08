@@ -42,6 +42,7 @@ Each question must:
 - Target a specific aspect of the task that needs clarification
 - Help transform broad requests into specific, actionable items
 - Focus on narrowing the task scope and requirements
+- Focus on the directive, rather than question the user about their knowledge
 
 If the directive is vague, you may make assumptions in your asked asked questions such that their answers would clarify these uncertenties.
 
@@ -70,6 +71,7 @@ You will respond with JSON in this format: {"description": <your generated descr
 - Identify the required depth and breadth of information needed
 - Note any specific formats, metrics, or types of evidence required
 - Incorporate all relevant context from the follow-up Q&A to refine and specify the search parameters
+- Include and specify any franchises, individuals, companies, etc. that are relevant and required in the task.
 
 Input Format:
 USER_QUERY: [Initial user query text]
@@ -173,6 +175,7 @@ Important formatting rules:
 - Use single quotes or alternative phrasing within the description value to avoid breaking JSON syntax
 - Only use double quotes to wrap JSON keys and values
 - The description should be one continuous string without line breaks
+- Do not format the JSON as a code block. 
 
 Example of valid response:
 {
@@ -206,63 +209,70 @@ Do not return any text outside of the JSON object. Only return the raw text JSON
 //2) return an array containing the indexes of any of the categories from the dictionary array of categories that the text may fall into
 //     "categories": <an array of integers representing which of the provided categories this text falls into, if any at all>
 
-
-const selectSourcesPrompt = `Task: Analyze a research section description and identify ALL relevant information sources from the provided dictionary, being thorough and inclusive in source selection. Return a JSON object with comprehensive source IDs and/or missing information details.
+const selectSourcesPrompt = `Task: Analyze a research section description and identify the most relevant information sources (maximum 20) from the provided dictionary, prioritizing the most critical and directly relevant sources while maintaining thoroughness in selection. Return a JSON object with prioritized source IDs and/or missing information details.
 
 Inputs:
 1. description: String describing the content needed for a paper section.
 2. sources: Dictionary where keys are numerical source IDs and values are source content descriptions.
 
 Source Selection Guidelines:
-- Include ALL sources that contain ANY relevant information, even if:
-  * The source only partially covers the topic
-  * The information is mentioned briefly or tangentially
-  * The source approaches the topic from a different angle
-  * The information could be derived or inferred from the source
-  * The source provides context or background information
-  * The source offers supporting evidence or examples
-  * The source contains related or overlapping content
-  * The source discusses broader topics that encompass the required information
-  * The source provides complementary or supplementary information
-  * The source offers alternative perspectives or interpretations
+- Select up to 20 of the most relevant sources, prioritizing those that:
+  * Directly address the core topic
+  * Provide substantial coverage of key aspects
+  * Contain unique or critical information
+  * Offer primary research or foundational concepts
+  * Present significant empirical evidence
+  * Include essential methodological details
+  * Cover major theoretical frameworks
+  * Provide crucial context or background
+  * Represent seminal work in the field
+  * Offer authoritative perspectives
+
+Also consider sources that:
+  * Contain partially relevant information
+  * Approach the topic from different angles
+  * Provide supporting evidence
+  * Offer complementary perspectives
+  * Present alternative interpretations
 
 Evaluation Process:
-1. First pass: Identify obvious direct matches
-2. Second pass: Identify partial matches and related content
-3. Third pass: Consider indirect or inferential connections
-4. Final pass: Review ALL sources again to ensure nothing was missed
+1. First pass: Identify direct matches and primary sources
+2. Second pass: Evaluate quality and relevance of each source
+3. Third pass: Prioritize sources based on importance and uniqueness
+4. Final pass: Review and confirm selection of most critical sources
 
 Requirements:
 1. Return a JSON object containing:
-   - source_ids: List of ALL IDs containing ANY relevant information (if any)
+   - source_ids: List of up to 20 most relevant source IDs (if any)
    - Conditionally include:
      * required_info_description: Brief text listing the missing information (if sources are insufficient)
      * search_term: Search engine query to find missing information (if sources are insufficient)
-
 2. Response logic:
-   - Fully covered: Return only source_ids containing ALL relevant sources
-   - Partially covered: Return all three keys with comprehensive source_ids list
+   - Fully covered: Return only source_ids with most relevant sources (max 20)
+   - Partially covered: Return all three keys with prioritized source_ids list
    - No coverage: Return only required_info_description and search_term
 
-Format Rules:
-- Output ONLY raw JSON (no markdown, code blocks, or extra text)
-- Never include explanatory text outside the JSON object
-- Ensure valid JSON syntax without formatting characters
+Important formatting rules:
+- Do not return any text outside of the JSON object
+- Do not format or prettify your response
+- Return your JSON object response in raw-text
+- The description should be one continuous string without line breaks
+- Do not wrap your response in a json code block
+- Do not wrap your response with backticks
 
 Example response:
 {
-    "source_ids": [1, 2, 3, 4, 7, 9], // Comprehensive list of ALL source IDs with ANY relevant information
+    "source_ids": [1, 2, 3, 4, 7, 9], // List of most relevant source IDs (maximum 20)
     "required_info_description": "string", // Only include if information is missing
     "search_term": "string" // Only include if information is missing
 }
 
 Before finalizing response:
-- Double-check that ALL potentially useful sources are included
-- Verify that no relevant sources were overlooked
-- Confirm that indirect or related sources were considered
-- Ensure the source_ids list is as comprehensive as possible
+- Verify that the most critical sources are included
+- Ensure sources provide comprehensive coverage of key aspects
+- Confirm selection represents the most important perspectives
+- Check that the source_ids list is properly prioritized
 `
-
 
 const determineIfEnoughInfoPrompt = `You will be provided a description of a paragraph that needs to be written and a large body of source text. Your job will be to determine if the source text contains enough information to reasonably answer and fulfill the requirements from the provided description, even if every minor detail isn't explicitly stated. Consider that some details can be reasonably inferred or expanded from the given context.
 
@@ -321,7 +331,7 @@ const analyzeArticlesPrompt = `You will be provided the subject of a section, it
 // - Do not cite source IDs within the sentence, they should appear after the period.
 // - Surround source IDs in square brackets
 
-const checkFulfillsDescriptionPrompt = `You are provided with a required information description, a collection of source descriptions (each being a concise summary of a source's content), and a list of previously attempted search queries. Your task is to determine if the source descriptions collectively fulfill the required information description.
+const checkFulfillsDescriptionPrompt  = `You are provided with a required information description, a collection of source descriptions (each being a concise summary of a source's content), and a list of previously attempted search queries. Your task is to determine if the source descriptions collectively fulfill the required information description.
 
 Be lenient in your evaluation:
 - If a source's description suggests it likely contains the required information, consider it sufficient
@@ -343,4 +353,12 @@ Guidelines for the search_term:
 - If previous queries were about the subject directly, try related people/events/places
 
 Include the list of previously attempted search queries in your reasoning to avoid repetition.
-Respond with raw JSON only, with no additional text or formatting.`;
+Respond with raw JSON only, with no additional text or formatting.
+
+Important formatting rules:
+- Do not return any text outside of the JSON object
+- Do not format or prettify your response
+- Return your JSON object response in raw-text
+- The description should be one continuous string without line breaks
+- Do not wrap your response in a json code block
+- Do not wrap your response with backticks`;

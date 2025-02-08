@@ -51,6 +51,10 @@ body {
     justify-content: space-between;
 }
 
+.content-center {
+    justify-content: center;
+}
+
 .w-full {
     width: 100%;
 }
@@ -102,6 +106,16 @@ body {
     margin: 1rem 2rem;
     font-weight: 500;
     cursor: pointer;
+}
+
+.saved-message {
+    background-color: #28b128;
+    color: white;
+    font-size: 1.7rem;
+    border-radius: 0.7rem;
+    margin-top: 2rem;
+    padding: 1rem 2rem;
+    position: absolute;
 }
 
 .settings-inner {

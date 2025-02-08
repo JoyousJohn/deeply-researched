@@ -176,10 +176,10 @@ async function checkIfSourceFulfillsDescription(candidateSources, requiredDescri
         if (newLinks.length === 0) {
             newActivity("No new links found for additional information.");
             return false;
-        }
-
+        }        
+        
+        newActivity(`Searching ${newLinks.length} websites.`);
         appendURLS(newLinks);
-        newActivity(`Analyzing ${newLinks.length} new websites.`);
 
         // Capture the keys before fetching new texts
         const sourcesBeforeKeys = new Set(Object.keys(sources));
@@ -221,6 +221,7 @@ async function getRelevantAndNeededSources(sectionDescription) {
     let content = data.choices[0].message.content;
     try {
         content = JSON.parse(content);
+        addTokenUsageToActivity(data.usage)
     } catch (e) {
         console.error("Error parsing decoder response:", e);
         console.log("Response content:", content);
@@ -313,7 +314,7 @@ async function checkIfEnoughContext(section, currentSourceText) {
 
 // The other functions remain unchanged:
 
-function sendRequestToDecoder(messages_payload, json_mode) {
+function sendRequestToDecoder(messages_payload, max_tokens) {
     return new Promise((resolve, reject) => {
         let payload = {
             model: decoderModelId,
@@ -324,9 +325,9 @@ function sendRequestToDecoder(messages_payload, json_mode) {
             messages: messages_payload,
         };
 
-        // if (json_mode) {
-        //     payload['response_format'] = { type: "json_object" }
-        // }
+        if (max_tokens) {
+            payload['max_tokens'] = max_tokens
+        }
 
         fetch(decoderBase, {
             method: 'POST',
@@ -415,7 +416,7 @@ async function categorizeSource(index, source) {
             The text body is: ${source.text}
         ` }
     ]
-    const data = await sendRequestToDecoder(messages_payload)
+    const data = await sendRequestToDecoder(messages_payload, '1024')
     addTokenUsageToActivity(data.usage)
     let content;
     try {
@@ -468,9 +469,14 @@ async function removeRemainingCategories(categorizations) {
 
 
 async function getTexts(links) {
-
-    const response = await fetch(`http://localhost:8000/get_link_texts?links=${encodeURIComponent(links)}`);
-    const data = await response.json();
+    let data;
+    try {
+        const response = await fetch(`http://localhost:8000/get_link_texts?links=${encodeURIComponent(links)}`);
+        data = await response.json();
+    } catch (error) {
+        newActivity('Failed to fetch websites.');
+        throw error; // Re-throw the error after logging the activity
+    }
 
     let categorizations = [];
     updateActivityLinkColors(data.result, links); // Corrected variable name
