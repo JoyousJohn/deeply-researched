@@ -45,6 +45,7 @@ Each question must:
 - Focus on the directive, rather than question the user about their knowledge
 
 If the directive is vague, you may make assumptions in your asked asked questions such that their answers would clarify these uncertenties.
+You may correct suspected typos (i.e. unknown or uncommon words) from the original prompt when asking your questions.
 
 Example format:
 {

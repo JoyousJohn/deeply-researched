@@ -31,7 +31,7 @@ Deeply Researched has demonstrated comparable results to Deep Research while mai
 
 ## Technical Architecture
 
-Deeply Researched runs mainly in browser, using a lightweight Python ThreadingHTTPServer server solely for search engine functionality via the googlesearch-python library.
+Deeply Researched runs mainly in browser, using a lightweight Python ThreadingHTTPServer server solely for search engine functionality.
 
 Future, optional, Brave Search API integration will fully eliminate the need for a backend and allow functionality from a static HTML file.
 
@@ -80,7 +80,7 @@ Different models of similar sizes have shown vastly different performance. Many 
 | Llama 3.1 8B Instruct Turbo | Good |
 | Gemini 1.5 Flash | Good |
 | Gemini 1.5 Flash 8B | Good |
-|
+| | |
 | Mistral Small 3 | Poor |
 | Mistral 7B Instruct v0.3 | Poor |
 | Claude 3 Haiku | Poor |
