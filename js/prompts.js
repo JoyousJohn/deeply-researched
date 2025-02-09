@@ -133,7 +133,8 @@ Example format: (no backticks)
         "description": "string: comprehensive explanation of all required content, information, data, analysis and writing needed for this section *based solely on the stated requests*",
         "search_keywords": ["string: specific search term 1 *from the request*", "string: specific search term 2 *from the request*"]
     }
-]}`
+    ]
+}`
 
 const requiredInfoPrompt = `You will be provided with a document layout containing sections and detailed descriptions outlining their goals and contents. Analyze these sections and generate a list of required information/sources needed to complete the document.
 

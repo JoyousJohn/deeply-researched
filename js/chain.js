@@ -39,7 +39,7 @@ function nextPhase() {
         top_p: 0.9,
         // top_k: 40,
         max_tokens: 2048,
-        response_format: { type: "json_object" }
+        // response_format: { type: "json_object" }
     };
 
     if (phase === 'waitingForInput') {
@@ -209,7 +209,7 @@ function makeRequest(payload) {
 
         let context;
         try {
-            context = JSON.parse(fullResponse.choices[0].message.content);
+            context = JSON.parse(fullResponse.choices[0].message.content.replace('```json', '').replace('```', ''));
         } catch (e) {
             console.error("Error parsing JSON response:", e);
             console.log("Full response JSON:", fullResponse);

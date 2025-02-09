@@ -63,19 +63,49 @@ Different models of similar sizes have shown vastly different performance. Many 
 | DeekSeek V3 | Excellent |
 | Gemini 2.0 Flash | Excellent |
 | Llama 3.1 405B Instruct | Excellent |
+| GPT-4o mini | Excellent |
+| Nova Pro 1.0 | Excellent |
+| Mistral Large 2411 | Excellent |
+<br>
 | Llama 3.3 70B Instruct | Great |
 | Llama 3.1 70B Instruct | Great |
 | Gemini 1.5 Pro | Great |
 | Mixtral 8x7B Instruct v0.1 | Great |
+| Nova Lite 1.0 | Great |
+| MiniMax 01 | Great |
+| Jamba 1.5 Large | Great |
+<br>
 | Llama 3.3 70B Instruct Turbo | Good |
 | Llama 3.1 8B Instruct | Good |
 | Llama 3.1 8B Instruct Turbo | Good |
 | Gemini 1.5 Flash | Good |
 | Gemini 1.5 Flash 8B | Good |
+<br>
 | Mistral Small 3 | Poor |
 | Mistral 7B Instruct v0.3 | Poor |
+| Claude 3 Haiku | Poor |
+| WizardLM-2 8x22B | Poor |
+<br>
 | Phi 4 | Incompatible |
 | Llama 3.2 3B Instruct | Incompatible |
 | Llama 3.2 1B Instruct | Incompatible |
 | Gemini 2.0 Flash Light Preview 02-05 | Incompatible |
 | Mistral Nemo Instruct 2407 | Incompatible |
+| Qwen 2.5 72B Instruct | Incompatible |
+| Gemini 2.0 Pro (Exp) | Incompatible |
+| LFM 7B | Incompatible |
+| Ministral 3B | Incompatible |
+| Nova Micro 1.0 | Incompatible |
+| Command R7B | Incompatible |
+| Qwen2.5 Turbo | Incompatible |
+| Ministral 8B | Incompatible |
+| Phi 3.5 Mini Instruct | Incompatible |
+| LFM 40B | Incompatible |
+| Command R 08-24 | Incompatible |
+| Jamba 1.5 Mini | Incompatible |
+| Codestral Mamba | Incompatible |
+| Codestral 2501 | Incompatible |
+| Qwen Plus | Incompatible |
+| Jamba Instruct | Incompatible |
+
+ Models labeled "incompatible" cannot return valid, structured, and sensical responses consistently and in a cost-effective manner without requiring excessive attempts.

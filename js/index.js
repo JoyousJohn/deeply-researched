@@ -89,7 +89,7 @@ function disableBar() {
 
 function enableBar() {
     searching = false;
-    $('textarea').val('').prop('disabled', false).css('pointer-events', 'all').attr('placeholder', 'Enter a message').css('text-align', 'left').focus();
+    $('textarea').val('').prop('disabled', false).css('pointer-events', 'all').attr('placeholder', 'Follow up').css('text-align', 'left').focus();
     $('.search-arrow').text('➜').css('background-color', 'white')
     $('.search-wrapper').css('cursor', '').css('background-color', 'rgb(33, 78, 147)')
     $('.throbber-wrapper').hide();

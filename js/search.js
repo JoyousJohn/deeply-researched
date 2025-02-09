@@ -354,6 +354,7 @@ function sendRequestToDecoder(messages_payload, max_tokens) {
             
             // Modify the content as needed
             response_json.choices[0].message.content = response_json.choices[0].message.content.replace('```json', '').replace('```', '');
+            console.log("Response JSON:", response_json); // Log the JSON response
             resolve(response_json);
         })
         .catch(error => {
