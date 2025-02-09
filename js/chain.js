@@ -128,14 +128,15 @@ function addTokenUsageToActivity(usage, url) {
         cost = usage.estimated_cost.toString().split(/(?<=\.\d*?[1-9])/)[0];
         cost = ' | $' + cost
         overallTokens['cost'] += usage.estimated_cost
-        overallTokens['requests']++
     }
 
+    overallTokens['requests']++
+
     if (url) {
-        $(`.token-count[data-activity-url="${url}"]`).first().text(usage.prompt_tokens + ' / ' + usage.completion_tokens + ' / ' + usage.total_tokens + ' tokens' + totalTime + cost)
-        $(`.token-count[data-activity-url="${url}"]`).first().parent().find('.activity-header').removeClass('activity-understanding')
+        $(`.token-count[data-activity-url="${url}"]:not(.activity-error)`).first().text(usage.prompt_tokens + ' / ' + usage.completion_tokens + ' / ' + usage.total_tokens + ' tokens' + totalTime + cost)
+        $(`.token-count[data-activity-url="${url}"]:not(.activity-error`).first().parent().find('.activity-header').removeClass('activity-understanding')
     } else {
-        $('.token-count').first().text(usage.prompt_tokens + ' / ' + usage.completion_tokens + ' / ' + usage.total_tokens + ' tokens' + totalTime + cost)
+        $('.token-count:not(.activity-error').first().text(usage.prompt_tokens + ' / ' + usage.completion_tokens + ' / ' + usage.total_tokens + ' tokens' + totalTime + cost)
     }
 
     overallTokens['input'] += usage.prompt_tokens
@@ -301,7 +302,7 @@ function makeRequest(payload) {
   
 
 
-function newActivity(activity, url) {
+function newActivity(activity, url, is_error) {
     if (!url) {
         url = '';
     }
@@ -314,6 +315,9 @@ function newActivity(activity, url) {
     </div>`)
     if (url) {
         $newActivityElm.find('div').first().addClass('activity-understanding')
+    }
+    if (is_error) {
+        $newActivityElm.find('.token-count').first().addClass('activity-error')
     }
     $('.activity').prepend($newActivityElm)
 }
@@ -336,6 +340,11 @@ function addToModalMessage(message) {
 }
 
 function startTimer() {
+    console.log("Starting timer..."); // Debug log
+    if (timer) { // Check if timer is already set
+        console.log("Clearing existing timer:", timer); // Debug log
+        clearInterval(timer); // Clear the existing timer
+    }
     timer = setInterval(() => {
         elapsedTime++;
         updateRuntimeDisplay();
@@ -343,6 +352,15 @@ function startTimer() {
     setTimeout(() => {
         $('.progress-bar').fadeIn();   
     }, 1000);
+    console.log("Timer started with ID:", timer); // Debug log
+}
+
+function stopTimer() {
+    console.log("Stopping timer..."); // Debug log
+    console.log("Timer before clear:", timer); // Debug log
+    clearInterval(timer);
+    timer = null; // Reset timer to null after clearing
+    console.log("Timer after clear:", timer); // Debug log
 }
 
 function updateRuntimeDisplay() {

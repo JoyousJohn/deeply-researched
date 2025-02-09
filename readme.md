@@ -27,6 +27,7 @@ Deeply Researched has demonstrated comparable results to Deep Research while mai
 - Demonstrated effectiveness across model scales, including compact architectures (8B+ parameters)
 - View live cost, runtime, model request, and token breakdowns
 - Limit specificity to your likings
+- 429 error handling (thus compatible with free, rate-limited providers!)
 
 ## Technical Architecture
 
@@ -40,7 +41,7 @@ Future, optional, Brave Search API integration will fully eliminate the need for
 2. Ensure Python is installed on your system
 3. Navigate to the project directory
 4. (Optional) Create and activate a virtual environment`
-5. Install dependencies: `` pip install -r requirements.txt ``
+5. Install dependencies (the 3 required are googlesearch, newspaper, and fake-useragent): `` pip install -r requirements.txt ``
 6. Start the server: ``python -m http.server``
 7. Access the interface through index.html in your browser
 
@@ -61,9 +62,13 @@ Future, optional, Brave Search API integration will fully eliminate the need for
 | Llama 3.3 70B Instruct | Great |
 | Llama 3.3 70B Instruct Turbo | Great |
 | Llama 3.1 70B Instruct | Great |
+| Gemini 1.5 Pro | Great |
 | Llama 3.1 8B Instruct | Good |
 | Llama 3.1 8B Instruct Turbo | Good |
+| Gemini 1.5 Flash | Good |
+| Gemini 1.5 Flash 8B | Good |
 | Mistral Small 3 | Adequate |
 | Phi 4 | Incompatible |
 | Llama 3.2 3B Instruct | Incompatible |
 | Llama 3.2 1B Instruct | Incompatible |
+| Gemini 2.0 Flash Light Preview 02-05 | Incompatible |

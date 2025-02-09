@@ -1,5 +1,11 @@
 from googlesearch import search
 import requests
+from fake_useragent import UserAgent
+
+ua = UserAgent()
+
+def generate_user_agent():
+    return ua.random
 
 def get_links(keywords):
     try:
@@ -17,9 +23,9 @@ def get_links(keywords):
 from newspaper import Article, ArticleException, Config
 
 config = Config()
-config.browser_user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36'
 
 def get_text(url):
+    config.browser_user_agent = generate_user_agent()
     article = Article(url, config=config)
     try:
         article.download()

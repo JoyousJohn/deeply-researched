@@ -112,10 +112,10 @@ The sections must not overlap in purpose. Each description should not cover info
 
 Return a JSON array where each object represents a document section. The response *must*:
 
-* Contain *ONLY* valid JSON with no additional text or formatting. Do not surround the JSON in backticks.
+* Contain *ONLY* valid JSON with no additional text or formatting. Do not surround the JSON in backticks. Do not add newline characters. Do not format the JSON as a code block. Return the JSON in raw-text.
 * Include *exactly* these three fields for each section:
     * "section_title": String containing a clear, professional title for the section.
-    * "description": String containing an extremely detailed explanation of *only* the information, data, analysis, and writing that has been *specifically requested* for this section.
+    * "description": String containing an extremely detailed explanation of *only* the information, data, analysis, and writing that has been *specifically requested* for this section. Do *not* include any newline characters in the description.
     * "search_keywords": Array of strings containing specific search terms *directly related to the requests* that would help find sources for this section's required information.
 
 Example format: (no backticks)
@@ -285,14 +285,6 @@ Be lenient in evaluation:
 - Exact information doesn't need to be explicitly stated
 - Consider indirect sources that would logically contain the information
 
-Respond with JSON:
-{
-    "has_enough_information": boolean,
-    // Only include below if has_enough_information is false:
-    "missing_information": "Critical missing elements from the description - use provided body text to determine specific needs",
-    "search_term": "Search query following rules below"
-}
-
 Search term construction rules:
 - Write as a natural search engine query (complete question or statement)
 - Include main technical concept/topic as primary subject
@@ -308,7 +300,24 @@ Search term construction rules:
   - If previous queries focused on direct subject, try related topics
   - Review previous queries to avoid repetition
 
-Search terms should resemble natural Google searches, not academic titles. Each new search should take a completely different approach while targeting the core missing information.`
+Search terms should resemble natural Google searches, not academic titles. Each new search should take a completely different approach while targeting the core missing information.
+
+Important formatting rules:
+- Do not return any text outside of the JSON object
+- Do not format or prettify your response
+- Return your JSON object response in raw-text
+- The description should be one continuous string without line breaks
+- Do not wrap your response in a json code block
+- Do not wrap your response with backticks;
+
+Respond with JSON (no backtick block formatting):
+{
+    "fulfills": boolean,
+    // Only include below if fulfills is false:
+    "missing_information": "Critical missing elements from the description - use provided body text to determine specific needs. List the missing information in sentence format, without describing why the information is needed or missing.",
+    "search_term": "Search query following rules below"
+}
+`
 
 const analyzeArticlesPrompt = `You will be provided the subject of a section, its description, and a string containing all of the source material. Write **only the raw content** for this specific section as part of a longer document. Your task is to **extract and analyze only the information directly relevant to the section's description**. Do **not** summarize or cover all information from the source text. Follow these guidelines:
 
@@ -326,9 +335,11 @@ const analyzeArticlesPrompt = `You will be provided the subject of a section, it
 - **NO extraneous information.** Exclude anything not explicitly tied to the section's description.
 - **Cite specific examples/quotes** from the provided sources. Avoid unsupported claims.
 - **NO repetition.** Do not excessively repeat facts or texts. Rather, delve deeply into their significance with respect to the description.
+- Do not directly mention the sources by name unless otherwise directed.
 
 **Output Format:**
 - Raw, continuous text that flows naturally within a larger work. 
+- Break up large and long blocks of text into paragraphs separated by new lines for easier reading.
 - Directly address the description's points in detail, using **only the most relevant evidence** from the source material.`
 
 

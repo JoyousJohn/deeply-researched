@@ -5,6 +5,9 @@ let globalTriedSearchTerms = new Set();
 
 let finalContent = []
 
+let isWaiting = false; // Flag to track if a wait is in progress
+let remainingWaitTime = 60000; // Initialize remaining wait time to 60 seconds
+
 function appendURLS(links) {
     // Append each link to the UI and mark it as processed
     links.forEach(link => {
@@ -140,9 +143,9 @@ async function beginSearches() {
 
     enableBar();
     console.log("Timer before clear:", timer);
-    clearInterval(timer);
+    stopTimer(); // Call the stopTimer function
     console.log("Timer after clear:", timer);
-    $('.current-section').css('Done, awaiting instructions')
+    $('.current-section').text('Done, awaiting instructions')
 
     usage.total += usage.in + usage.out
     $('.token-count').first().text(usage.in.toLocaleString() + ' / ' + usage.out.toLocaleString() + ' / ' + usage.total.toLocaleString() + ' total draft tokens')
@@ -179,6 +182,7 @@ async function checkIfSourceFulfillsDescription(candidateSources, requiredDescri
         response = JSON.parse(data.choices[0].message.content);
     } catch (e) {
         console.error("Error parsing checkIfSourceFulfillsDescription response:", e);
+        console.log("Response content:", data.choices[0].message.content);
         // In case of a parsing error, assume the sources do not fulfill the requirement.
         return false;
     }
@@ -190,6 +194,12 @@ async function checkIfSourceFulfillsDescription(candidateSources, requiredDescri
         addTokenUsageToActivity(data.usage)
         return true;
     } else {
+
+        if (!response.missing_information) {
+            console.log('missing')
+            console.log(response)
+        }
+
         newActivity(`Missing information: ${response.missing_information}`);
         addTokenUsageToActivity(data.usage)
         newActivity(`Searching for: "${response.search_term}"`);
@@ -254,13 +264,15 @@ async function getRelevantAndNeededSources(sectionDescription) {
     ];
 
     const data = await sendRequestToDecoder(messages_payload);
-    let content = data.choices[0].message.content;
+    let content;
     try {
+        content = data.choices[0].message.content;
         content = JSON.parse(content);
         addTokenUsageToActivity(data.usage)
     } catch (e) {
         console.error("Error parsing decoder response:", e);
         console.log("Response content:", content);
+        newActivity('Error getting relevant and needed sources')
         throw e;
     }
     return content;
@@ -292,9 +304,42 @@ function sendRequestToDecoder(messages_payload, max_tokens) {
             },
             body: JSON.stringify(payload)
         })
-        .then(response => response.json())
-        .then(data => {
-            resolve(data);
+        .then(response => {
+            if (!response.ok) {
+                if (response.status === 429) {
+                    if (!isWaiting) {
+                        isWaiting = true;
+                        newActivity(`Received error 429: Too many requests. Retrying in 1 minute...`, is_error=true);
+                        let countdown = remainingWaitTime / 1000; // Convert to seconds
+                        const countdownInterval = setInterval(() => {
+                            countdown--;
+                            $('.activity-working').text(`Received error 429: Too many requests. Retrying in ${countdown}s...`);
+                        }, 1000);
+                        
+                        return new Promise(resolve => setTimeout(() => {
+                            clearInterval(countdownInterval);
+                            newActivity(`Trying again after waiting for 1 minute...`);
+                            $('.activity-error').removeClass('activity-working')
+                            isWaiting = false; // Reset the flag after waiting
+                            resolve();
+                        }, remainingWaitTime))
+                        .then(() => sendRequestToDecoder(messages_payload, max_tokens));
+                    } else {
+                        // If already waiting, calculate the remaining time and wait
+                        return new Promise(resolve => setTimeout(resolve, remainingWaitTime));
+                    }
+                }
+                newActivity(`Receive error: ${response.status}`);
+                reject(new Error(`HTTP error! status: ${response.status}`));
+            } else {
+                return response.json(); // Return the promise for the JSON data
+            }
+        })
+        .then(response_json => {
+            console.log(response_json); // Log the resolved JSON data
+            response_json.choices[0].message.content = response_json.choices[0].message.content.replace('```json', '').replace('```', ''); // Modify the content as needed
+            console.log(response_json);
+            resolve(response_json); // Resolve the outer promise with the modified response
         })
         .catch(error => {
             console.error('Error:', error);
@@ -395,31 +440,39 @@ async function categorizeSource(index, source) {
             The text body is: ${source.text}
         ` }
     ]
-    const data = await sendRequestToDecoder(messages_payload, '1024')
+    
+    const data = await sendRequestToDecoder(messages_payload, 1024);
+    if (!data) {
+        handleError(source.url, url);
+        return; // Exit the function if data is undefined
+    }
     addTokenUsageToActivity(data.usage, source.url)
     let content;
     try {
         content = JSON.parse(data.choices[0].message.content);
         // Move these lines inside the try block so they only execute on success
-        addToModalMessage(`\n\n${url} contains ${content.description.charAt(0).toLowerCase() + content.description.slice(1)}`)
-        sources[index]['description'] = content.description
-        return content.description
+        addToModalMessage(`\n\n${url} contains ${content.description.charAt(0).toLowerCase() + content.description.slice(1)}`);
+        sources[index]['description'] = content.description;
+        return content.description;
 
-    } catch (error) { 
-        // console.error('Error parsing JSON:', error);
-        $(`div.activity-errors[data-activity-link-url="${source.url}"]`)
-            .removeAttr('data-activity-link-url')
-            .text("Failed to parse");
-        $(`div.activity-link-status[data-activity-link-url="${source.url}"] > div`)
-            .parent()
-            .removeAttr('data-activity-link-url')
-            .find('div')
-            .css('background-color', 'red');
-        globalProcessedLinks.delete(source.url);
-        console.log(`Failed to parse JSON for website: ${url}`)
+    } catch (error) {
+        handleError(source.url, url);
         console.log('JSON content:', data.choices[0].message.content);
-        // throw error; // Re-throw the error after logging
     }
+}
+
+function handleError(sourceUrl, url) {
+    console.error("No data received from sendRequestToDecoder or failed to parse JSON");
+    $(`div.activity-errors[data-activity-link-url="${sourceUrl}"]`)
+        .removeAttr('data-activity-link-url')
+        .text("Failed to parse");
+    $(`div.activity-link-status[data-activity-link-url="${sourceUrl}"] > div`)
+        .parent()
+        .removeAttr('data-activity-link-url')
+        .find('div')
+        .css('background-color', 'red');
+    globalProcessedLinks.delete(sourceUrl);
+    console.log(`Failed to parse JSON for website: ${url} (Source URL: ${sourceUrl})`);
 }
 
 
@@ -467,7 +520,7 @@ async function getTexts(links) {
                     if (result.length !== 0) {
                         validResponses++;
                         allData.push(result);
-                        console.log(`${validResponses}/${totalResponses} responses completed`); // Log the progress
+                        // console.log(`${validResponses}/${totalResponses} responses completed`); // Log the progress
                     }
                 });
                 return data;
@@ -476,6 +529,11 @@ async function getTexts(links) {
     } catch (error) {
         newActivity('Failed to fetch one or more websites');
         throw error;
+    }
+
+    if (allData.length === 0) {
+        newActivity(`Couldn't find relevant websites`);
+        return;
     }
 
     newActivity(`Analyzing ${allData.length} ${allData.length > 1 ? 'websites' : 'website'}`);
@@ -487,7 +545,7 @@ async function getTexts(links) {
     for (let index = 0; index < allData.length; index++) {
 
         const source = allData[index];
-        console.log(source.url)
+        // console.log(source.url)
         const this_source = {
             url: source.url,
             text: source.text,

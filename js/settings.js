@@ -34,7 +34,7 @@ $(document).ready(function() {
     populateInputs();
 
     $('.confirm-button').on('click', function() {
-        const apiKeyInputs = $(this).siblings('.api-key-input');
+        const apiKeyInputs = $('.api-key-input');
         
         apiKeyInputs.each(function() {
             const inputKey = $(this).data('key');
