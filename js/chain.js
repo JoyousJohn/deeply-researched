@@ -1,4 +1,5 @@
 $('.search-arrow').click(function() {
+    if (searching) { return; }
     sendMessage();
 })
 

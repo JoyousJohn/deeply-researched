@@ -51,6 +51,10 @@ body {
     align-items: end;
 }
 
+.align-self-end {
+    align-self: flex-end;
+}
+
 .content-end {
     justify-content: end;
 }
@@ -196,7 +200,12 @@ body {
     height: 100%;
     width: 100%;
     overflow-y: scroll;
-    /* scrollbar-width: none; */
+    scrollbar-color: #6f6f6f transparent;
+}
+
+.chat-space-wrapper::-webkit-scrollbar,
+.chat-space-wrapper::-moz-scrollbar {
+    background-color: transparent;
 }
 
 /* .chat-space-wrapper::-webkit-scrollbar {

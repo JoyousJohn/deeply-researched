@@ -159,7 +159,7 @@ async function checkIfSourceFulfillsDescription(candidateSources, requiredDescri
         return false;
     }
 
-    console.log(response);
+    // console.log(response);
 
     if (response.fulfills === true) {
         newActivity("Fulfilled section requirements");
@@ -168,7 +168,7 @@ async function checkIfSourceFulfillsDescription(candidateSources, requiredDescri
     } else {
         newActivity(`Missing information: ${response.missing_information}`);
         addTokenUsageToActivity(data.usage)
-        newActivity(`Searching for more sources using search term: "${response.search_term}"`);
+        newActivity(`Searching for: "${response.search_term}"`);
 
         // Track the search term so it is not reused in subsequent iterations
         globalTriedSearchTerms.add(response.search_term);
@@ -176,6 +176,11 @@ async function checkIfSourceFulfillsDescription(candidateSources, requiredDescri
         // Fetch new links based on the search term provided by the prompt
         const linksData = await getLinks(response.search_term);
         // Filter out links that have already been processed
+        if (!Array.isArray(linksData.result)) {
+            console.error("Error: linksData.result is not an array:", linksData.result);
+            newActivity("Received unexpected data format for links.");
+            return false;
+        }
         let newLinks = linksData.result.filter(link => !globalProcessedLinks.has(link));
 
         if (newLinks.length === 0) {

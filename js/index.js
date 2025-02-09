@@ -53,6 +53,7 @@ $('textarea').on('keydown', function(event) {
 });
 
 $('.search-wrapper').click(function(event) {
+    if (searching) { return; }
     $('textarea').focus(); // Focus on the textarea
     $('.search-wrapper').css('background-color', 'rgb(33, 78, 147)').css('width', '57%')
 });
@@ -62,7 +63,10 @@ $('textarea').on('blur', function() {
     $('.search-wrapper').css('background-color', 'rgb(73, 73, 73)')
 });
 
+let searching = false;
+
 function disableBar() {
+    searching = true;
     $('textarea').val('Deeply researching...').css('height', '').prop('disabled', true).css('pointer-events', 'none').css('text-align', 'center');
     $('.search-arrow').text('■').css('background-color', '#d4d4d4')
     $('.search-wrapper').css('cursor', 'default').css('background-color', 'rgb(52, 52, 52)')
@@ -70,6 +74,7 @@ function disableBar() {
 }
 
 function enableBar() {
+    searching = false;
     $('textarea').val('').prop('disabled', false).css('pointer-events', 'all').attr('placeholder', 'Enter a message').css('text-align', 'left').focus();
     $('.search-arrow').text('➜').css('background-color', 'white')
     $('.search-wrapper').css('cursor', '').css('background-color', 'rgb(33, 78, 147)')
