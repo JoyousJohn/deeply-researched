@@ -122,14 +122,29 @@ async function beginSearches() {
     $('.activity-working').first().removeClass('activity-working').css('color', '#5bfa5b')
     newModelMessageElm()
 
+    const usage ={
+        'in': 0,
+        'out': 0,
+        'total': 0
+    }
+
     finalContent.forEach(section => {
         addToModalMessage('\n\n\n\n<span class="text-2rem">' + section.section_title + '</span>')
-        addToModalMessage('\n\n' + section.section_content)
+        addToModalMessage('\n\n' + section.section_content.trim())
+
+        usage.in += section.tokens.in
+        usage.out += section.tokens.out
     })
 
     enableBar();
-    clearInterval(timer)
+    console.log("Timer before clear:", timer);
+    clearInterval(timer);
+    console.log("Timer after clear:", timer);
     $('.current-section').css('Done, awaiting instructions')
+
+    usage.total += usage.in + usage.out
+    $('.token-count').first().text(usage.in.toLocaleString() + ' / ' + usage.out.toLocaleString() + ' / ' + usage.total.toLocaleString() + ' total draft tokens')
+
 }
 
 // }
@@ -304,17 +319,29 @@ async function analyzeSearch(searchData, section) {
 
     const data = await sendRequestToDecoder(messages_payload);
     const content = data.choices[0].message.content;
+    const usage = data.usage;
+    
+    // Add error handling
+    if (!data.choices) {
+        console.error("Error: data.choices is undefined", data);
+        newActivity("Failed to draft section")
+        throw new Error("Invalid response structure");
+    }
 
     finalContent.push({
         'section_title': section_title,
-        'section_content': content
+        'section_content': content,
+        'tokens': {
+            'in': usage.prompt_tokens,
+            'out': usage.completion_tokens,
+            'total': usage.prompt_tokens + usage.completion_tokens
+        }
     })
 
     // console.log(content);
-    const usage = data.usage;
     newModelMessageElm(true);
     addToModalMessage(section_title)
-    addToModalMessage('\n\n ' + content);
+    addToModalMessage('\n\n ' + content.trim());
     // newActivity('Drafted the section');
     addTokenUsageToActivity(usage);
 }
@@ -449,7 +476,7 @@ async function getTexts(links) {
         throw error;
     }
 
-    newActivity(`Analyzing ${allData.length} websites`);
+    newActivity(`Analyzing ${allData.length} ${allData.length > 1 ? 'websites' : 'website'}`);
 
     const startIndex = Object.keys(sources).length;
 

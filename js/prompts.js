@@ -273,37 +273,42 @@ Before finalizing response:
 - Confirm selection represents the most important perspectives
 - Check that the source_ids list is properly prioritized
 `
+const checkFulfillsDescriptionPrompt = `Evaluate if source descriptions fulfill a required information description. Consider that details can be reasonably inferred or expanded from context.
 
-const determineIfEnoughInfoPrompt = `You will be provided a description of a paragraph that needs to be written and a large body of source text. Your job will be to determine if the source text contains enough information to reasonably answer and fulfill the requirements from the provided description, even if every minor detail isn't explicitly stated. Consider that some details can be reasonably inferred or expanded from the given context.
+Mark information as missing only if:
+- It's essential to core requirements
+- Cannot be reasonably derived from provided content
+- Is truly critical (not minor details)
 
-Only mark information as missing if it's essential to the core requirements and cannot be reasonably derived or expanded from the provided content. If the source text provides enough foundational information to construct a valid response, even if some minor elaboration would be needed, consider it sufficient. 
+Be lenient in evaluation:
+- Sources that likely contain the information are sufficient
+- Exact information doesn't need to be explicitly stated
+- Consider indirect sources that would logically contain the information
 
-- You can use information from the provided body text to decide what else is specifically needed.
-
-You will respond with a true or false value based on this assessment. Only if truly essential information is missing from the source text, include these additional keys in your response:
-
-1. "missing_information": a string sentence listing only the critical information missing that is required to comply with the description.
-
-2. "search_term": construct a search query following these rules:
-   - Write it as a complete question or declarative statement that a human would naturally type into a search engine like Google to find sources.
-   - Include the main technical concept or topic as the primary subject.
-   - Add any necessary qualifiers (version numbers, frameworks, methodologies) immediately after the main concept.
-   - Specify the type of content needed (tutorial, comparison, documentation, guide, etc.) if applicable.
-   - Include a recent year range if the topic is technology-related or rapidly evolving.
-   - Place multi-word technical terms or exact phrases in quotes.
-   - Keep the query between 5-10 words for optimal search engine performance.
-   - Ensure the query focuses on the specific missing information rather than the broader topic.
-   - Additionally, if multiple search terms have already been attempted previously, the query should adopt a broader and more general approach to increase the likelihood of finding relevant sources while still reflecting the essence of the missing information.
-   - Do not mix unrelated categories or combine multiple distinct technical topics in the search query. The search term must solely target the core missing information and should resemble a natural Google search input, not an academic paper title.
-   - The search term can be or include a natural language, complete-sentence question that a person might ask.
-
-You will respond with a JSON object in the following format:
+Respond with JSON:
 {
-    "has_enough_information": <true/false boolean>,
-    "missing_information": <string description of the missing information>, // only present if has_enough_information is false
-    "search_term": <the search query constructed following the rules above> // only present if has_enough_information is false
-}`
+    "has_enough_information": boolean,
+    // Only include below if has_enough_information is false:
+    "missing_information": "Critical missing elements from the description - use provided body text to determine specific needs",
+    "search_term": "Search query following rules below"
+}
 
+Search term construction rules:
+- Write as a natural search engine query (complete question or statement)
+- Include main technical concept/topic as primary subject
+- Add qualifiers (versions, frameworks, methodologies) after main concept
+- Specify content type (tutorial, documentation, etc.) if relevant
+- Include recent year range for technology topics
+- Use quotes for multi-word technical terms/exact phrases
+- Focus solely on specific missing information
+- If multiple searches attempted:
+  - Adopt broader, more general approach
+  - Try different perspectives (historical/recent, formal/informal)
+  - Consider alternative sources/contexts
+  - If previous queries focused on direct subject, try related topics
+  - Review previous queries to avoid repetition
+
+Search terms should resemble natural Google searches, not academic titles. Each new search should take a completely different approach while targeting the core missing information.`
 
 const analyzeArticlesPrompt = `You will be provided the subject of a section, its description, and a string containing all of the source material. Write **only the raw content** for this specific section as part of a longer document. Your task is to **extract and analyze only the information directly relevant to the section's description**. Do **not** summarize or cover all information from the source text. Follow these guidelines:
 
@@ -327,43 +332,36 @@ const analyzeArticlesPrompt = `You will be provided the subject of a section, it
 - Directly address the description's points in detail, using **only the most relevant evidence** from the source material.`
 
 
-// After referencing text from the sources, cite the source ID(s) after the sentence or paragraph by wrapping the source ID number in square brackets.
 
-// Regarding citing sources and their IDS:
-// - Do *not* include a references section
-// - Source IDs are the numerical dictionary value within the supplied source object
-// - Include source IDs after the sentences or paragraphs where that information was used
-// - Do not cite source IDs within the sentence, they should appear after the period.
-// - Surround source IDs in square brackets
 
-const checkFulfillsDescriptionPrompt  = `You are provided with a required information description, a collection of source descriptions (each being a concise summary of a source's content), and a list of previously attempted search queries. Your task is to determine if the source descriptions collectively fulfill the required information description.
+// const checkFulfillsDescriptionPrompt  = `You are provided with a required information description, a collection of source descriptions (each being a concise summary of a source's content), and a list of previously attempted search queries. Your task is to determine if the source descriptions collectively fulfill the required information description.
 
-Be lenient in your evaluation:
-- If a source's description suggests it likely contains the required information, consider it sufficient
-- The exact required information doesn't need to be explicitly stated in the description
-- Consider indirect sources that would logically contain the information
+// Be lenient in your evaluation:
+// - If a source's description suggests it likely contains the required information, consider it sufficient
+// - The exact required information doesn't need to be explicitly stated in the description
+// - Consider indirect sources that would logically contain the information
 
-If the sources suffice, return exactly the following JSON object:
-{"fulfills": true}
+// If the sources suffice, return exactly the following JSON object:
+// {"fulfills": true}
 
-If they do not, return exactly the following JSON object:
-{"fulfills": false, "missing_information": "<a clear, specific description of exactly what essential information is missing>", "search_term": "<a natural search query from a different angle than previously attempted>"}
+// If they do not, return exactly the following JSON object:
+// {"fulfills": false, "missing_information": "<a clear, specific description of exactly what essential information is missing>", "search_term": "<a natural search query from a different angle than previously attempted>"}
 
-Guidelines for the search_term:
-- Try a completely different approach or perspective with each new search
-- Consider alternative sources, contexts, or related events that might contain the information
-- Write it as a natural search query that a person would type
-- If previous queries focused on recent sources, try historical ones (or vice versa)
-- If previous queries focused on official sources, try informal ones (or vice versa)
-- If previous queries were about the subject directly, try related people/events/places
+// Guidelines for the search_term:
+// - Try a completely different approach or perspective with each new search
+// - Consider alternative sources, contexts, or related events that might contain the information
+// - Write it as a natural search query that a person would type
+// - If previous queries focused on recent sources, try historical ones (or vice versa)
+// - If previous queries focused on official sources, try informal ones (or vice versa)
+// - If previous queries were about the subject directly, try related people/events/places
 
-Include the list of previously attempted search queries in your reasoning to avoid repetition.
-Respond with raw JSON only, with no additional text or formatting.
+// Include the list of previously attempted search queries in your reasoning to avoid repetition.
+// Respond with raw JSON only, with no additional text or formatting.
 
-Important formatting rules:
-- Do not return any text outside of the JSON object
-- Do not format or prettify your response
-- Return your JSON object response in raw-text
-- The description should be one continuous string without line breaks
-- Do not wrap your response in a json code block
-- Do not wrap your response with backticks`;
+// Important formatting rules:
+// - Do not return any text outside of the JSON object
+// - Do not format or prettify your response
+// - Return your JSON object response in raw-text
+// - The description should be one continuous string without line breaks
+// - Do not wrap your response in a json code block
+// - Do not wrap your response with backticks`;

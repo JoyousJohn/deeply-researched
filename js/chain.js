@@ -190,6 +190,11 @@ function makeRequest(payload) {
     })
     .then(response => {
         if (!response.ok) {
+            newActivity(`Received HTTP error ${response.status}`)
+            response.json().then(errorMessage => {
+                newActivity(`Error message: ${Object.values(errorMessage).map(value => JSON.stringify(value)).join(', ')}`);
+                clearTimeout(timer)
+            });
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         return response.json();
