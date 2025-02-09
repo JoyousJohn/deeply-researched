@@ -61,6 +61,18 @@ $(document).ready(function() {
 
     $('.model-name').text(decoderModelId.replaceAll('-', ' '))
 
+    $('#stats-toggle').change(function() {
+        if ($(this).is(':checked')) {
+            $('.overall-tokens').show();
+        } else {
+            $('.overall-tokens').hide();
+        }
+    });
+
+    if ($('#stats-toggle').is(':checked')) {
+        $('.overall-tokens').show();
+    }
+
 })
 
 $(document).keydown(function(event) {

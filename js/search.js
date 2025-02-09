@@ -97,6 +97,8 @@ async function beginSearches() {
             await checkIfSourceFulfillsDescription(newSources, relevantAndNeededSources.required_info_description);
         }
 
+        newActivity(`Context validated`)
+
         newActivity(`Selecting sources`)
         addToModalMessage(`\n\nI'm choosing sources relevant to these requirements: ${section.description}`)
 
@@ -341,7 +343,7 @@ async function analyzeSearch(searchData, section) {
     // console.log(content);
     newModelMessageElm(true);
     addToModalMessage(section_title)
-    addToModalMessage('\n\n ' + content.trim());
+    addToModalMessage('\n\n ' + content);
     // newActivity('Drafted the section');
     addTokenUsageToActivity(usage);
 }
