@@ -374,6 +374,27 @@ textarea::-webkit-scrollbar {
     margin-top: 0.5rem;
 }
 
+.decoder-bullet-wrapper {
+    display: flex;
+    margin-right: 0.8rem;
+    align-items: center;
+    height: 100%;
+    padding-top: 6px;
+}
+
+.decoder-bullet {
+    height: 1.8rem;
+    background-color: #acacac;
+    border: 2px solid #acacac;
+    border-radius: 50%;
+    aspect-ratio: 1;
+    box-sizing: border-box;
+}
+
+.bullet-selected {
+    background-color: #2225e8;
+}
+
 .disabled-input {
     opacity: 0.5;
 }
@@ -390,7 +411,7 @@ textarea::-webkit-scrollbar {
     transition: 100ms;
 }
 
-.confirm-button:hover {
+.confirm-button:hover, .add-model:hover {
     background-color: rgb(69, 59, 255);
     border-color: rgb(69, 59, 255);
     color: white;
@@ -399,6 +420,13 @@ textarea::-webkit-scrollbar {
 .input-wrapper-adv {
     display: grid;
     grid-template-columns: 1fr 1.2fr 1.4fr auto;
+    align-items: center;
+    column-gap: 0.5rem;
+}
+
+.input-wrapper-adv-2 {
+    display: grid;
+    grid-template-columns: auto 1fr 1.2fr 1.4fr auto;
     align-items: center;
     column-gap: 0.5rem;
 }
@@ -418,6 +446,7 @@ textarea::-webkit-scrollbar {
     border: 2px solid #464646;
     box-sizing: border-box;
     border-radius: 0.5rem;
+    z-index: 1;
 }
 
 .base-presets > div > div {
@@ -437,6 +466,21 @@ textarea::-webkit-scrollbar {
     color: white;
     padding: 0.5rem !important;
 }
+
+.add-model {
+    font-size: 1.7rem;
+    color: rgb(43, 43, 43);
+    background-color: rgb(209, 209, 209);
+    border-radius: 0.5rem;
+    padding: 1rem 2rem;
+    width: max-content;
+    cursor: pointer;
+    transition: 100ms;
+    margin-top: 1.5rem;
+}
+
+
+
 
 .demo-disclaimer {
     font-size: 1.5rem;

@@ -59,10 +59,11 @@ Future, optional, Brave Search API integration will fully eliminate the need for
 | Model      | Performane |
 |------------|--------|
 | DeekSeek V3 | Excellent |
+| Gemini 2.0 Flash | Excellent |
 | Llama 3.3 70B Instruct | Great |
-| Llama 3.3 70B Instruct Turbo | Great |
 | Llama 3.1 70B Instruct | Great |
 | Gemini 1.5 Pro | Great |
+| Llama 3.3 70B Instruct Turbo | Good |
 | Llama 3.1 8B Instruct | Good |
 | Llama 3.1 8B Instruct Turbo | Good |
 | Gemini 1.5 Flash | Good |

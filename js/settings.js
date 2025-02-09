@@ -4,25 +4,84 @@ const defaultSettings = {
     'reasoningBase': null,
     'reasoningKey': null,
 
-    'decoderModelId': '',
-    'decoderBase': null,
-    'decoderKey': null
+    'selectedDecoderModelId': '1',
+
+    'allKeySettings': {
+        '1': {
+            'decoderModelId': '',
+            'decoderBase': '',
+            'decoderKey': '',
+        }
+    }
 }
 
 let settings = {}
 let decoderModelId, decoderBase, decoderKey
 let braveKey
 
-function populateInputs() {
-    // Load saved settings into input fields
-    $('.api-key-input').each(function() {
-        const inputKey = $(this).data('key');
-        if (inputKey && settings[inputKey]) {
-            $(this).val(settings[inputKey]);
-        } else {
-            $(this).val('');
+function populateInputs(isInitial) {
+
+    // Loop through allKeySettings and populate inputs for each model using index
+    Object.keys(settings.allKeySettings).forEach((modelId, index) => {
+        if (isInitial && modelId !== '1') {
+            createModelClone();
+        }
+        const modelValues = settings.allKeySettings[modelId];
+        const modelElement = $(`[data-model="${modelId}"]`); // Select the parent element with data-model=modelId
+        for (const key in modelValues) {
+            modelElement.find(`.api-key-input[data-key="${key}"]`).val(modelValues[key]); // Find inputs within the model element
         }
     });
+}
+
+function confirmSettings(elm) {
+
+    const modelId = $(elm).closest('[data-model]').attr('data-model');
+    const apiKeyInputs = $(`[data-model="${modelId}"]`).find('.api-key-input');
+    
+    console.log(apiKeyInputs)
+
+    let modelValues = {};
+
+    apiKeyInputs.each(function() {
+        const inputKey = $(this).data('key');
+        const value = $(this).val();
+        if (inputKey) {
+            console.log(`Saving ${inputKey}:`, value);
+            modelValues[inputKey] = value;
+        }
+    });
+
+    settings.allKeySettings[modelId] = modelValues;
+    localStorage.setItem('settings', JSON.stringify(settings));
+
+    $('.saved-message').text("Saved!").slideDown('fast');
+    setTimeout(function() {
+        $('.saved-message').slideUp('fast');
+    }, 3000);
+
+    selectModel(modelId)
+
+}
+
+function setGlobalSelectedModelVars() {
+
+    const selectedModelId = settings['selectedDecoderModelId']
+    decoderModelId = settings.allKeySettings[selectedModelId].decoderModelId
+    decoderBase = settings.allKeySettings[selectedModelId].decoderBase
+    decoderKey = settings.allKeySettings[selectedModelId].decoderKey
+
+    $('.model-name').text(decoderModelId.replaceAll('-', ' '))
+
+}
+
+let modelSelectionTimeout;
+function modelSelectionPopup() {
+    clearTimeout(modelSelectionTimeout);
+    $('.saved-message').show().text(`Selected model ${decoderModelId}!`);
+    modelSelectionTimeout = setTimeout(function() {
+        $('.saved-message').slideUp('fast');
+    }, 3000);
 }
 
 $(document).ready(function() {
@@ -31,35 +90,18 @@ $(document).ready(function() {
     }
     settings = JSON.parse(localStorage.getItem('settings'));
 
-    populateInputs();
+    $('.decoder-bullet-wrapper').click(function() { // set event on initial element since other event handlers for others are added when cloned
+        selectModel(1)
+        modelSelectionPopup();
+    })
+
+    setGlobalSelectedModelVars(settings['selectedDecoderModelId'])
+    populateInputs(true);
+    selectModel(settings['selectedDecoderModelId'])
 
     $('.confirm-button').on('click', function() {
-        const apiKeyInputs = $('.api-key-input');
-        
-        apiKeyInputs.each(function() {
-            const inputKey = $(this).data('key');
-            const value = $(this).val();
-            if (inputKey) {
-                settings[inputKey] = value;
-                console.log(`Saving ${inputKey}:`, value);
-            }
-        });
-
-        localStorage.setItem('settings', JSON.stringify(settings));
-
-        $('.saved-message').slideDown('fast');
-        setTimeout(function() {
-            $('.saved-message').slideUp('fast');
-        }, 3000);
-
+        confirmSettings($(this))
     });
-
-    decoderModelId = settings['decoderModelId']
-    decoderBase = settings['decoderBase']
-    decoderKey = settings['decoderKey']
-    braveKey = settings['braveKey']
-
-    $('.model-name').text(decoderModelId.replaceAll('-', ' '))
 
     $('#stats-toggle').change(function() {
         if ($(this).is(':checked')) {
@@ -93,7 +135,8 @@ $(document).keydown(function(event) {
 });
 
 $('input[data-key="decoderBase"]').click(function() {
-    $('.base-presets').slideDown(100);
+    $('.base-presets').hide();
+    $(this).next('.base-presets').slideDown(100);
 })
 
 $('input[data-key="decoderBase"]').on('input', function() {
@@ -107,6 +150,48 @@ $('.settings-wrapper').click(function(event) {
 })
 
 $('div[data-base]').click(function() {
-    $('input[data-key="decoderBase"]').val($(this).attr('data-base'))
+    $(this).closest('.base-presets').prev().val($(this).attr('data-base'))
     $('.base-presets').slideUp('fast');
+})
+
+function selectModel(modelNum) {
+    console.log("Selecting saved deocder modelId: ", modelNum)
+    settings['selectedDecoderModelId'] = modelNum
+    localStorage.setItem('settings', JSON.stringify(settings))
+    $('.bullet-selected').removeClass('bullet-selected')
+    $(`[data-model="${modelNum}"]`).find('.decoder-bullet').addClass('bullet-selected')
+
+    setGlobalSelectedModelVars(modelNum)
+}
+
+function createModelClone() {
+    const $clone = $('.decoder-template').clone().find('input').val('').end();
+    $clone.removeClass('decoder-template');
+    $clone.find('.api-key-label').remove();
+    $clone.find('.bullet-selected').removeClass('bullet-selected');
+    $clone.find('input[data-key="decoderBase"]').click(function() {
+        $('.base-presets').hide();
+        $(this).next('.base-presets').slideDown(100);
+    });
+    $clone.find('.confirm-button').click(function() {
+        confirmSettings($(this));
+    });
+
+    const modelNum = $('.preset-base-title').length + 1;
+    $clone.attr('data-model', modelNum);
+    $clone.find('.decoder-bullet-wrapper').attr('data-model', modelNum).click(function() {
+        selectModel(modelNum)
+        modelSelectionPopup();
+    })
+
+    $clone.find('div[data-base]').click(function() {
+        $(this).closest('.base-presets').prev().val($(this).attr('data-base'))
+        $('.base-presets').slideUp('fast');
+    })
+
+    $('.decoder-template').parent().children().last().before($clone);
+}
+
+$('.add-model').click(function() {
+    createModelClone();
 })

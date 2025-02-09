@@ -310,7 +310,7 @@ function sendRequestToDecoder(messages_payload, max_tokens) {
                     if (!isWaiting) {
                         isWaiting = true;
                         newActivity(`Received error 429: Too many requests. Retrying in 1 minute...`, is_error=true);
-                        let countdown = remainingWaitTime / 1000; // Convert to seconds
+                        let countdown = remainingWaitTime / 1000;
                         const countdownInterval = setInterval(() => {
                             countdown--;
                             $('.activity-working').text(`Received error 429: Too many requests. Retrying in ${countdown}s...`);
@@ -320,12 +320,11 @@ function sendRequestToDecoder(messages_payload, max_tokens) {
                             clearInterval(countdownInterval);
                             newActivity(`Trying again after waiting for 1 minute...`);
                             $('.activity-error').removeClass('activity-working')
-                            isWaiting = false; // Reset the flag after waiting
+                            isWaiting = false;
                             resolve();
                         }, remainingWaitTime))
                         .then(() => sendRequestToDecoder(messages_payload, max_tokens));
                     } else {
-                        // If already waiting, calculate the remaining time and wait
                         return new Promise(resolve => setTimeout(resolve, remainingWaitTime));
                     }
                 }
@@ -336,10 +335,17 @@ function sendRequestToDecoder(messages_payload, max_tokens) {
             }
         })
         .then(response_json => {
-            console.log(response_json); // Log the resolved JSON data
-            response_json.choices[0].message.content = response_json.choices[0].message.content.replace('```json', '').replace('```', ''); // Modify the content as needed
-            console.log(response_json);
-            resolve(response_json); // Resolve the outer promise with the modified response
+            if (!response_json) {
+                throw new Error("Invalid response format: response_json is undefined.");
+            } else if (!response_json.choices) {
+                throw new Error("Invalid response format: response_json does not contain 'choices'.");
+            } else if (response_json.choices.length === 0) {
+                throw new Error("Invalid response format: response_json.choices is empty.");
+            }
+            
+            // Modify the content as needed
+            response_json.choices[0].message.content = response_json.choices[0].message.content.replace('```json', '').replace('```', '');
+            resolve(response_json);
         })
         .catch(error => {
             console.error('Error:', error);
@@ -440,7 +446,7 @@ async function categorizeSource(index, source) {
             The text body is: ${source.text}
         ` }
     ]
-    
+
     const data = await sendRequestToDecoder(messages_payload, 1024);
     if (!data) {
         handleError(source.url, url);

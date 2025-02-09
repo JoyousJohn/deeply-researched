@@ -366,5 +366,5 @@ function stopTimer() {
 function updateRuntimeDisplay() {
     const minutes = Math.floor(elapsedTime / 60);
     const seconds = elapsedTime % 60;
-    $('.runtime').text(`${minutes}m ${seconds}s`);
+    $('.runtime').text(minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`);
 }
