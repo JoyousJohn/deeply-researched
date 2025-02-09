@@ -315,25 +315,28 @@ function sendRequestToDecoder(messages_payload, max_tokens) {
                 if (response.status === 429) {
                     if (!isWaiting) {
                         isWaiting = true;
-                        newActivity(`Received error 429: Too many requests. Retrying in 1 minute...`, is_error=true);
+                        newActivity(`Received error 429: Too many requests. Retrying in 1 minute...`, is_error = true);
                         let countdown = remainingWaitTime / 1000;
                         const countdownInterval = setInterval(() => {
                             countdown--;
                             $('.activity-working').text(`Received error 429: Too many requests. Retrying in ${countdown}s...`);
                         }, 1000);
-                        
+                
                         return new Promise(resolve => setTimeout(() => {
                             clearInterval(countdownInterval);
                             newActivity(`Trying again after waiting for 1 minute...`);
-                            $('.activity-error').removeClass('activity-working')
+                            $('.activity-error').removeClass('activity-working');
                             isWaiting = false;
                             resolve();
                         }, remainingWaitTime))
                         .then(() => sendRequestToDecoder(messages_payload, max_tokens));
                     } else {
-                        return new Promise(resolve => setTimeout(resolve, remainingWaitTime));
+                        // Modify the else branch to also call sendRequestToDecoder after waiting:
+                        return new Promise(resolve => setTimeout(resolve, remainingWaitTime))
+                            .then(() => sendRequestToDecoder(messages_payload, max_tokens));
                     }
                 }
+                
                 newActivity(`Receive error: ${response.status}`);
                 return response.text().then(text => {
                     newActivity(`Response body: ${text}`); // Log the response body in newActivity

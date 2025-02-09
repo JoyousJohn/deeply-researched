@@ -15,7 +15,7 @@ An open-source implementation of OpenAI's Deep Research that aims to replicate i
 Mimicing OpenAI Deep Research, Deeply Researched is a browser-based research tool capable of searching the web with iterative self-refinement. The system breaks down complex queries into subtasks, continuously validates its progress, and automatically locates sources to find and explore relevant information.
 
 ### Performance
-Deeply Researched has demonstrated comparable results to Deep Research while maintaining efficiency across various model sizes. Even models as small as Llama 8B yield satisfactory results, with 32-70B models already producing great responses.
+Deeply Researched has demonstrated comparable results to Deep Research while maintaining efficiency across various model sizes. Even models as small as Llama 8B yield satisfactory results, with inexpensive Nova Lite 1.0 producing superb outputs.
 
 ### Key Features
 - Iterative task decomposition and validation
@@ -37,7 +37,7 @@ Future, optional, Brave Search API integration will fully eliminate the need for
 
 ## Installation
 
-1. Download and extract this repository
+1. Clone or download and extract this repository
 2. Ensure Python is installed on your system
 3. Navigate to the project directory
 4. (Optional) Create and activate a virtual environment

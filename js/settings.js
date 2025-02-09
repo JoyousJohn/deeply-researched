@@ -39,7 +39,7 @@ function confirmSettings(elm) {
     const modelId = $(elm).closest('[data-model]').attr('data-model');
     const apiKeyInputs = $(`[data-model="${modelId}"]`).find('.api-key-input');
     
-    console.log(apiKeyInputs)
+    // console.log(apiKeyInputs)
 
     let modelValues = {};
 
@@ -47,7 +47,7 @@ function confirmSettings(elm) {
         const inputKey = $(this).data('key');
         const value = $(this).val();
         if (inputKey) {
-            console.log(`Saving ${inputKey}:`, value);
+            console.log(`Saving ${inputKey}: ${value} for model #: ${modelId}`);
             modelValues[inputKey] = value;
         }
     });
@@ -60,7 +60,10 @@ function confirmSettings(elm) {
         $('.saved-message').slideUp('fast');
     }, 3000);
 
-    // selectModel(modelId)
+    if ($(`[data-model="${modelId}"]`).find('.decoder-bullet').hasClass('bullet-selected')) {
+        selectModel(modelId)
+    }
+
 }
 
 const providerMap = {
@@ -87,7 +90,14 @@ function getProvider() {
 
 function setGlobalSelectedModelVars() {
 
-    const selectedModelId = settings['selectedDecoderModelId']
+    let selectedModelId = settings['selectedDecoderModelId']
+
+    if (!settings.allKeySettings[selectedModelId]) {
+        selectedModelId = 1;
+        settings.selectedDecoderModelId = 1
+        localStorage.setItem('setting', JSON.stringify(settings))
+    }
+
     decoderModelId = settings.allKeySettings[selectedModelId].decoderModelId
     decoderBase = settings.allKeySettings[selectedModelId].decoderBase
     decoderKey = settings.allKeySettings[selectedModelId].decoderKey
@@ -150,7 +160,6 @@ $(document).keydown(function(event) {
         } else if (!$(document.activeElement).is('input')) {
             $('.settings-wrapper').show();
             populateInputs();
-
         }
     }
 });
