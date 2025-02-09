@@ -166,6 +166,9 @@ $(document).keydown(function(event) {
 
 $('input[data-key="decoderBase"]').click(function() {
     $('.base-presets').hide();
+    if ($(this).val() !== '') {
+        return;
+    }
     $(this).next('.base-presets').slideDown(100);
 })
 
@@ -201,6 +204,9 @@ function createModelClone() {
     $clone.find('.bullet-selected').removeClass('bullet-selected');
     $clone.find('input[data-key="decoderBase"]').click(function() {
         $('.base-presets').hide();
+        if ($(this).val() !== '') {
+            return;
+        }
         $(this).next('.base-presets').slideDown(100);
     });
     $clone.find('.confirm-button').click(function() {
