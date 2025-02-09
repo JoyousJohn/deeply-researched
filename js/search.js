@@ -82,13 +82,10 @@ async function beginSearches() {
 
             appendURLS(links)
 
-            // Capture the keys already present in the global `sources`
             const sourcesBeforeKeys = new Set(Object.keys(sources));
 
-            // Fetch texts for the new links which adds new sources to the global object
             await getTexts(links);
 
-            // Determine which sources were newly added
             const newSourceKeys = Object.keys(sources).filter(key => !sourcesBeforeKeys.has(key));
             const newSources = {};
             newSourceKeys.forEach(key => {
@@ -98,14 +95,13 @@ async function beginSearches() {
             // console.log('newSources: ', newSources)
 
             await new Promise(resolve => setTimeout(resolve, 10000));
-
-            // Now pass only the new sources to checkIfSourceFulfillsDescription
             await checkIfSourceFulfillsDescription(newSources, relevantAndNeededSources.required_info_description);
         }
 
         newActivity(`Choosing sources`)
         addToModalMessage(`\n\nI'm choosing sources relevant to these requirements: ${section.description}`)
 
+        // add that this only runs if the initial relevantAndNeededSources returned it has enough and didn't need to run. oteherwise checking if we have the relevant sources happens twice  on the same source ocuments data info.
         relevantAndNeededSources = await getRelevantAndNeededSources(section.description)
 
         const required_source_ids = relevantAndNeededSources.source_ids
@@ -327,15 +323,21 @@ function getLinks(keywords) {
 }
 
 
-function updateActivityLinkColors(results) {
-    $('.activity-sites:has(div)').first().find('div.activity-link-status > div').css('background-color', 'red');
+function updateActivityLinkColor(results) {
     results.forEach(result => {
         const url = result.url;
-        $(`div.activity-link-status[data-activity-link-url="${url}"] > div`).css('background-color', 'lime');
-        $(`div.activity-char-count[data-activity-link-url="${url}"]`).text(
-            result.length.toLocaleString() + ' chars/' + result.text.split(/\s+/).length.toLocaleString() + ' words'
-        );
-    });
+        const statusEl = $(`div.activity-link-status[data-activity-link-url="${url}"] > div`);
+        
+        if (result.length === 0) {
+            statusEl.css('background-color', 'red');
+        } else {
+            statusEl.css('background-color', 'lime');
+            $(`div.activity-char-count[data-activity-link-url="${url}"]`).text(
+                result.length.toLocaleString() + ' chars / ' +
+                result.text.split(/\s+/).length.toLocaleString() + ' words'
+            );
+        }
+    })
 }
 
 
@@ -394,52 +396,69 @@ async function removeRemainingCategories(categorizations) {
     const data = await sendRequestToDecoder(messages_payload)
     const content = JSON.parse(data.choices[0].message.content);
 
-    console.log(content)
     const requirements_to_eliminate = content.existing_source_ids;
 
     requirements_to_eliminate.forEach(req => {
-        console.log(`Removing requirement with key: ${remainingRequirements[req]}`);
+        // console.log(`Removing requirement with key: ${remainingRequirements[req]}`);
         delete remainingRequirements[req];
     });
 }
 
 
 async function getTexts(links) {
-    let data;
+    // Create an array of promises—one for each link.
+    let responses;
+    let validResponses;
+
+    let allData = []
+
     try {
-        const response = await fetch(`http://localhost:8000/get_link_texts?links=${encodeURIComponent(links)}`);
-        data = await response.json();
+        responses = await Promise.all(
+            links.map(async (link) => {
+                const linkArray = JSON.stringify([link]);
+                const response = await fetch(`http://localhost:8000/get_link_texts?links=${encodeURIComponent(linkArray)}`);
+                const data = await response.json();
+                const results = data.results;
+
+                updateActivityLinkColor(results)
+
+                results.forEach(result => {
+                    if (result.length !== 0) {
+                        validResponses++;
+                        allData.push(result)
+                    }
+                })
+                return data;
+            })
+        );
     } catch (error) {
-        newActivity('Failed to fetch websites.');
-        throw error; // Re-throw the error after logging the activity
+        newActivity('Failed to fetch one or more websites');
+        throw error;
     }
 
-    let categorizations = [];
-    updateActivityLinkColors(data.result, links); // Corrected variable name
+    newActivity(`Analyzing ${allData.length} websites`);
 
-    newActivity(`Analyzing ${data.result.length} websites`)
+    // let categorizations = [];
+    const startIndex = Object.keys(sources).length;
 
-    const startIndex = Object.keys(sources).length; // Determine the starting index
-    for (let index = 0; index < data.result.length; index++) {
-        const source = data.result[index];
+    for (let index = 0; index < allData.length; index++) {
+
+        const source = allData[index];
         const this_source = {
-            'url': source.url,
-            'text': source.text,
-            'length': source.length
+            url: source.url,
+            text: source.text,
+            length: source.length
         };
         sources[startIndex + index] = this_source; // Add to sources
-        $('.status-option-sources').text(`Sources (${Object.keys(sources).length})`)
+        $('.status-option-sources').text(`Sources (${Object.keys(sources).length})`);
 
-        // Await inside loop since we are in an async function now
         const description = await categorizeSource(startIndex + index, this_source);
-        // console.log(description)
-        categorizations.push(description);
+        // categorizations.push(description);
     }
-
     // removeRemainingCategories(categorizations);
-
-    return data;
+    return;
 }
+
 
 function getBaseUrl(url) {
     let baseUrl = url.replace(/^https?:\/\//, '');

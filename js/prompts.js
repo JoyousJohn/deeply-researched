@@ -276,7 +276,9 @@ Before finalizing response:
 
 const determineIfEnoughInfoPrompt = `You will be provided a description of a paragraph that needs to be written and a large body of source text. Your job will be to determine if the source text contains enough information to reasonably answer and fulfill the requirements from the provided description, even if every minor detail isn't explicitly stated. Consider that some details can be reasonably inferred or expanded from the given context.
 
-Only mark information as missing if it's essential to the core requirements and cannot be reasonably derived or expanded from the provided content. If the source text provides enough foundational information to construct a valid response, even if some minor elaboration would be needed, consider it sufficient.
+Only mark information as missing if it's essential to the core requirements and cannot be reasonably derived or expanded from the provided content. If the source text provides enough foundational information to construct a valid response, even if some minor elaboration would be needed, consider it sufficient. 
+
+- You can use information from the provided body text to decide what else is specifically needed.
 
 You will respond with a true or false value based on this assessment. Only if truly essential information is missing from the source text, include these additional keys in your response:
 
@@ -293,6 +295,7 @@ You will respond with a true or false value based on this assessment. Only if tr
    - Ensure the query focuses on the specific missing information rather than the broader topic.
    - Additionally, if multiple search terms have already been attempted previously, the query should adopt a broader and more general approach to increase the likelihood of finding relevant sources while still reflecting the essence of the missing information.
    - Do not mix unrelated categories or combine multiple distinct technical topics in the search query. The search term must solely target the core missing information and should resemble a natural Google search input, not an academic paper title.
+   - The search term can be or include a natural language, complete-sentence question that a person might ask.
 
 You will respond with a JSON object in the following format:
 {

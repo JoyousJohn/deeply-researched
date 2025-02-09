@@ -24,7 +24,7 @@ Deeply Researched has demonstrated comparable results to Deep Research while mai
 
 ## Technical Architecture
 
-The application runs primarily in the browser, utilizing a lightweight Python HTTP server solely for search functionality via the googlesearch-python library. This architecture ensures minimal resource requirements while maintaining advanced research capabilities. 
+The application runs primarily in the browser, utilizing a lightweight Python ThreadingHTTPServer server solely for search functionality via the googlesearch-python library. This architecture ensures minimal resource requirements while maintaining advanced research capabilities. 
 
 Future, optional, Brave Search API integration will fully eliminate the need for a backend and allow functionality from a static HTML file.
 

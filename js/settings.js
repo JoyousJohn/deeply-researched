@@ -69,6 +69,7 @@ $(document).keydown(function(event) {
         $('.base-presets').hide();
     }
     else if (event.key === "S" || event.key === "s") {
+        if ($(document.activeElement).is('textarea')) return
         if ($('.settings-wrapper').is(':visible') && !$(document.activeElement).is('input')) {
             $('.settings-wrapper').hide();
         } else if (!$(document.activeElement).is('input')) {

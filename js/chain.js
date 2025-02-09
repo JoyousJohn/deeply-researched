@@ -182,7 +182,12 @@ function makeRequest(payload) {
       },
       body: JSON.stringify(payload)
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
     .then(fullResponse => {
         // console.log('Full response received:', fullResponse);
 
@@ -259,9 +264,11 @@ function makeRequest(payload) {
 
             newActivity('Planned an outline');
             addTokenUsageToActivity(usage)
-            setPhase('createRequirements')
-            nextPhase()
+            beginSearches();
+            // setPhase('createRequirements')
+            // nextPhase()
 
+        // currently unused
         } else if (phase === 'createRequirements') {
 
             context.topics.forEach((topic, index) => {
@@ -270,7 +277,7 @@ function makeRequest(payload) {
             })
 
             addTokenUsageToActivity(usage)
-            beginSearches();
+            // beginSearches();
 
 
         } else {

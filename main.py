@@ -3,17 +3,15 @@ import requests
 
 def get_links(keywords):
     try:
-        # The search function should return full URLs, but let's add validation
         results = []
         for result in search(keywords):
-            # Skip any results that don't start with http:// or https://
             if result.startswith(('http://', 'https://')):
                 results.append(result)
         return results
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == 429:
             return {'result': 429}
-        raise  # Re-raise the exception for other HTTP errors
+        raise
 
 from newspaper import Article, ArticleException, Config
 
@@ -29,18 +27,21 @@ def get_text(url):
     except ArticleException as e:
         print(f"Failed to download article from {url}: {e}")
         return "Error: Unable to retrieve article."
+    except FileNotFoundError as e:
+        print(f"Directory not found for article resources: {e}")
+        return "Error: Unable to retrieve article due to missing directory."
 
-from http.server import HTTPServer, SimpleHTTPRequestHandler
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 import urllib.parse
 import json
 
 class RequestHandler(SimpleHTTPRequestHandler):
     def do_GET(self):
-        # Add CORS headers
-        self.send_response(200)  # Send the response status code first
+
+        self.send_response(200)
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Content-type', 'application/json')
-        self.end_headers()  # End headers before writing the body
+        self.end_headers()
         
         if self.path.startswith('/get_links'):
             parsed_path = urllib.parse.urlparse(self.path)
@@ -53,7 +54,7 @@ class RequestHandler(SimpleHTTPRequestHandler):
                 self.wfile.write(json.dumps(links).encode())
                 return
             
-            links = links[:10]  # Now safe to slice
+            # links = links[:10]
             print('Found links: ', links)            
             self.wfile.write(json.dumps({'result': links}).encode())
 
@@ -61,31 +62,35 @@ class RequestHandler(SimpleHTTPRequestHandler):
             parsed_path = urllib.parse.urlparse(self.path)
             query_params = urllib.parse.parse_qs(parsed_path.query)
 
-            links = query_params.get('links', [''])[0].split(',')
-
+            links_param = query_params.get('links', [''])[0]
+            links = json.loads(links_param)
             print(f"Received {len(links)} links: {links}")
 
             texts = []
             for link in links:
                 print(f"Reading url: {link}")
                 link_text = get_text(link)
-                if (len(link_text)) < 300: continue
-                texts.append({
-                    'url': link,
-                    'length': len(link_text),
-                    'text': link_text
-                })
 
-            self.wfile.write(json.dumps({'result': texts}).encode())
+                if len(link_text) < 300 or link_text.split(' ')[0] == 'Error:': 
+                    texts.append({
+                        'url': link,
+                        'length': 0
+                    })
+                else:           
+                    texts.append({
+                        'url': link,
+                        'length': len(link_text),
+                        'text': link_text
+                    })
 
+            self.wfile.write(json.dumps({'results': texts}).encode())
 
-        
         else:
             super().do_GET()
 
 
 if __name__ == '__main__':
     server_address = ('', 8000)
-    httpd = HTTPServer(server_address, RequestHandler)
+    httpd = ThreadingHTTPServer(server_address, RequestHandler)
     print('Server running on port 8000')
     httpd.serve_forever()

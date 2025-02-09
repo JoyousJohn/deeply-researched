@@ -64,16 +64,18 @@ $('textarea').on('blur', function() {
 
 function disableBar() {
     $('textarea').val('Deeply researching...').css('height', '').prop('disabled', true).css('pointer-events', 'none').css('text-align', 'center');
-    $('.search-arrow').text('■')
+    $('.search-arrow').text('■').css('background-color', '#d4d4d4')
     $('.search-wrapper').css('cursor', 'default').css('background-color', 'rgb(52, 52, 52)')
     $('.throbber-wrapper').fadeIn();
 }
 
 function enableBar() {
     $('textarea').val('').prop('disabled', false).css('pointer-events', 'all').attr('placeholder', 'Enter a message').css('text-align', 'left').focus();
-    $('.search-arrow').text('➜')
+    $('.search-arrow').text('➜').css('background-color', 'white')
     $('.search-wrapper').css('cursor', '').css('background-color', 'rgb(33, 78, 147)')
+    $('.throbber-wrapper').hide();
 }
+
 
 function newModelMessageElm(debug) {
     const $msgElm = $(`<div class="message-wrapper"></div>`)
