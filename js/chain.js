@@ -26,6 +26,10 @@ function setPhase(newPhase) {
 
 function sendMessage() {
     input = $('textarea').val()
+    if (!input) {
+        return;
+    }
+
     disableBar();
     newModalUserMessage(input)
     nextPhase()
