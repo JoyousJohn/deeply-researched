@@ -66,7 +66,7 @@ Different models of similar sizes have shown vastly different performance. Many 
 | GPT-4o mini | Excellent |
 | Nova Pro 1.0 | Excellent |
 | Mistral Large 2411 | Excellent |
-|
+| | |
 | Llama 3.3 70B Instruct | Great |
 | Llama 3.1 70B Instruct | Great |
 | Gemini 1.5 Pro | Great |
@@ -74,7 +74,7 @@ Different models of similar sizes have shown vastly different performance. Many 
 | Nova Lite 1.0 | Great |
 | MiniMax 01 | Great |
 | Jamba 1.5 Large | Great |
-|
+| | |
 | Llama 3.3 70B Instruct Turbo | Good |
 | Llama 3.1 8B Instruct | Good |
 | Llama 3.1 8B Instruct Turbo | Good |
@@ -85,7 +85,7 @@ Different models of similar sizes have shown vastly different performance. Many 
 | Mistral 7B Instruct v0.3 | Poor |
 | Claude 3 Haiku | Poor |
 | WizardLM-2 8x22B | Poor |
-| 
+| | |
 | Phi 4 | Incompatible |
 | Llama 3.2 3B Instruct | Incompatible |
 | Llama 3.2 1B Instruct | Incompatible |
