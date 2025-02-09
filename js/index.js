@@ -39,11 +39,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
     newActivity('Awaiting instructions')
 
+    checkVersion();
+
 });
 
 $('.settings').click(function() {
     $('.settings-wrapper').show();
 })
+
+function searchFocus() {
+    $('textarea').focus().attr('placeholder', 'Research a topic');
+    $('.search-wrapper').css('background-color', 'rgb(33, 78, 147)').css('width', '57%')
+}
 
 $('textarea').on('keydown', function(event) {
     if (event.key === 'Enter') {
@@ -52,10 +59,17 @@ $('textarea').on('keydown', function(event) {
     }
 });
 
+$(document).on('keydown', function(event) {
+    if (event.altKey && event.key === 'c') {
+        event.preventDefault();
+        searchFocus();
+    }
+})
+
+
 $('.search-wrapper').click(function(event) {
     if (searching) { return; }
-    $('textarea').focus(); // Focus on the textarea
-    $('.search-wrapper').css('background-color', 'rgb(33, 78, 147)').css('width', '57%')
+    searchFocus();
 });
 
 
@@ -88,4 +102,27 @@ function newModelMessageElm(debug) {
         $msgElm.css('color', 'gray')
     }
     $('.chat-space').append($msgElm)
+}
+
+
+function checkVersion() {
+    fetch('https://raw.githubusercontent.com/JoyousJohn/deeply-researched/refs/heads/main/js/ver.js')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.text();
+        })
+        .then(data => {
+            // Use Function to execute the code and retrieve the version
+            const getVersion = new Function(data + '; return ver;');
+            const latestVersion = getVersion();
+            if (ver !== latestVersion) {
+                console.log("New version available!")
+                $('.github').append($(`<div class="text-1p2rem" style="color: #9397d7">New version available.</div>`))
+            }
+        })
+        .catch(error => {
+            console.error('There was a problem with the fetch operation:', error);
+        });
 }

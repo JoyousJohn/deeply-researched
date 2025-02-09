@@ -10,6 +10,7 @@ $('.status-option').click(function() {
 
 $(document).keydown(function(e) {
     const selected = $('.status-option-selected').data('option');
+    if ($('textarea').is(':focus')) return;
     if (e.key === 'ArrowLeft') {
         if (selected === 'sources') {
             $('.status-option[data-option="activity"]').click();

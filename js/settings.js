@@ -60,8 +60,29 @@ function confirmSettings(elm) {
         $('.saved-message').slideUp('fast');
     }, 3000);
 
-    selectModel(modelId)
+    // selectModel(modelId)
+}
 
+const providerMap = {
+    'openai': 'OpenAI',
+    'googleapis': 'Google',
+    'anthrophic': 'Anthropic',
+    'deepinfra': 'DeepInfra',
+    'sambanova': 'SambaNova'
+}
+
+function getProvider() {
+    let url = decoderBase;
+    const urlPattern = /^(?:https?:\/\/)?(?:www\.)?([^\/]+)(?:\/.*)?$/;
+    const match = url.match(urlPattern);
+    if (match && match[1]) {
+        url = match[1].split('.').slice(1, -1).join('.'); // Extracts everything except the last part of the domain
+        if (url in providerMap) {
+            url = providerMap[url]
+        }
+        return url;
+    }
+    return url;
 }
 
 function setGlobalSelectedModelVars() {
@@ -71,7 +92,7 @@ function setGlobalSelectedModelVars() {
     decoderBase = settings.allKeySettings[selectedModelId].decoderBase
     decoderKey = settings.allKeySettings[selectedModelId].decoderKey
 
-    $('.model-name').text(decoderModelId.replaceAll('-', ' '))
+    $('.model-name').html(decoderModelId.replaceAll('-', ' ') + '<br>on ' + getProvider())
 
 }
 

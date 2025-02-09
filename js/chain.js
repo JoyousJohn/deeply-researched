@@ -213,6 +213,7 @@ function makeRequest(payload) {
         } catch (e) {
             console.error("Error parsing JSON response:", e);
             console.log("Full response JSON:", fullResponse);
+            newActivity("Error in chaining.")
             throw e;
         }
         const usage = fullResponse.usage

@@ -76,6 +76,12 @@ async function beginSearches() {
 
             const search_term = relevantAndNeededSources.search_term
 
+            if (!search_term || search_term === 'undefined') {
+                console.log("Search term was undefined...")
+                console.log("relevantAndNeededSources:")
+                console.log(relevantAndNeededSources)
+            }
+
             newActivity(`\n\nI need more information on ${relevantAndNeededSources.required_info_description}`)
             newActivity(`Searching phrase: ${relevantAndNeededSources.search_term}`)
 
@@ -289,7 +295,7 @@ function sendRequestToDecoder(messages_payload, max_tokens) {
             top_p: 0.9,
             // top_k: 40,
             messages: messages_payload,
-            max_tokens: 8192
+            max_tokens: 8192,
         };
 
         if (max_tokens) {
@@ -329,7 +335,10 @@ function sendRequestToDecoder(messages_payload, max_tokens) {
                     }
                 }
                 newActivity(`Receive error: ${response.status}`);
-                reject(new Error(`HTTP error! status: ${response.status}`));
+                return response.text().then(text => {
+                    newActivity(`Response body: ${text}`); // Log the response body in newActivity
+                    reject(new Error(`HTTP error! status: ${response.status}`));
+                });
             } else {
                 return response.json(); // Return the promise for the JSON data
             }

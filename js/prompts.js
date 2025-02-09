@@ -245,8 +245,8 @@ Evaluation Process:
 
 Requirements:
 1. Return a JSON object containing:
-   - source_ids: List of up to 20 most relevant source IDs (if any)
-   - Conditionally include:
+    - source_ids: List of up to 20 most relevant source IDs (if any)
+    - Conditionally include:
      * required_info_description: Brief text listing the missing information (if sources are insufficient)
      * search_term: Search engine query to find missing information (if sources are insufficient)
 2. Response logic:
@@ -262,11 +262,13 @@ Important formatting rules:
 - Do not wrap your response in a json code block
 - Do not wrap your response with backticks
 
+Important: Do *NOT* add any comments.
+
 Example response:
 {
-    "source_ids": [1, 2, 3, 4, 7, 9], // List of most relevant source IDs (maximum 20)
-    "required_info_description": "string", // Only include if information is missing
-    "search_term": "string" // Only include if information is missing
+    "source_ids": [1, 2, 3, 4, 7, 9], (List of most relevant source IDs, maximum of 20)
+    "required_info_description": "string", (Only include if information is missing)
+    "search_term": "string" (Only include if information is missing)
 }
 
 Before finalizing response:
