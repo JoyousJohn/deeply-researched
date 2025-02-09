@@ -139,6 +139,10 @@ function addTokenUsageToActivity(usage, url) {
         $('.token-count:not(.activity-error').first().text(usage.prompt_tokens + ' / ' + usage.completion_tokens + ' / ' + usage.total_tokens + ' tokens' + totalTime + cost)
     }
 
+    if (cost) {
+        cost = ' $' + overallTokens['cost'].toString().split(/(?<=\.\d*?[1-9]\d)/)[0] + ' / '
+    }
+
     overallTokens['input'] += usage.prompt_tokens
     overallTokens['output'] += usage.completion_tokens
 
@@ -175,7 +179,7 @@ function addTokenUsageToActivity(usage, url) {
 
     }
 
-    $('.overall-tokens').html(`${overallTokens['input'].toLocaleString()} / ${overallTokens['output'].toLocaleString()} / ${(overallTokens['input'] + overallTokens['output']).toLocaleString()} total tokens <br> $${overallTokens['cost'].toString().split(/(?<=\.\d*?[1-9]\d)/)[0]} / ${overallTokens['requests']} requests / ${rpm} RPM${workingContext}${memoryMapContext}`)
+    $('.overall-tokens').html(`${overallTokens['input'].toLocaleString()} / ${overallTokens['output'].toLocaleString()} / ${(overallTokens['input'] + overallTokens['output']).toLocaleString()} total tokens <br>${cost} ${overallTokens['requests']} request${overallTokens['requests'] !== 1 ? 's' : ''} / ${rpm} RPM${workingContext}${memoryMapContext}`)
 
 }
 

@@ -30,13 +30,13 @@ def get_text(url):
     try:
         article.download()
         article.parse()
-        return article.text
+        return article.title, article.text
     except ArticleException as e:
         print(f"Failed to download article from {url}: {e}")
-        return "Error: Unable to retrieve article."
+        return "Error: Unable to retrieve article.", ""
     except FileNotFoundError as e:
         print(f"Directory not found for article resources: {e}")
-        return "Error: Unable to retrieve article due to missing directory."
+        return "Error: Unable to retrieve article due to missing directory.", ""
 
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 import urllib.parse
@@ -76,9 +76,9 @@ class RequestHandler(SimpleHTTPRequestHandler):
             texts = []
             for link in links:
                 print(f"Reading url: {link}")
-                link_text = get_text(link)
+                article_title, link_text = get_text(link)
 
-                if len(link_text) < 300 or link_text.split(' ')[0] == 'Error:': 
+                if len(link_text) < 300 or article_title.split(' ')[0] == 'Error:': 
                     texts.append({
                         'url': link,
                         'length': 0
@@ -87,7 +87,8 @@ class RequestHandler(SimpleHTTPRequestHandler):
                     texts.append({
                         'url': link,
                         'length': len(link_text),
-                        'text': link_text
+                        'text': link_text,
+                        'title': article_title
                     })
 
             self.wfile.write(json.dumps({'results': texts}).encode())

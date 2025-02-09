@@ -73,6 +73,8 @@ You will respond with JSON in this format: {"description": <your generated descr
 - Incorporate all relevant context from the follow-up Q&A to refine and specify the search parameters
 - Include and specify any franchises, individuals, companies, etc. that are relevant and required in the task.
 
+Important: It is possible that the follow-up answers do not answer the questions or are entirely unrelated. If parts of the follow-up answers do not relate to the initial query or questions, ignore these parts.
+
 Input Format:
 USER_QUERY: [Initial user query text]
 QUESTIONS_ASKED: [Array of follow-up questions that were asked]
@@ -284,6 +286,7 @@ Be lenient in evaluation:
 - Sources that likely contain the information are sufficient
 - Exact information doesn't need to be explicitly stated
 - Consider indirect sources that would logically contain the information
+- Important: You are checking if the sources described likely contain the information needed, not if the descriptions actually do.
 
 Search term construction rules:
 - Write as a natural search engine query (complete question or statement)

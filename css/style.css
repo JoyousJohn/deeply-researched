@@ -577,6 +577,40 @@ textarea::-webkit-scrollbar {
     color: rgb(245, 79, 79);
 }
 
+.sources {
+    display: flex;
+    flex-direction: column;
+    row-gap: 1.5rem;
+    margin: 1.5rem;
+}
+
+.source {
+    background-color: #303030;
+    border-radius: 0.8rem;
+    padding: 1.5rem 2rem;
+    text-decoration: none;
+    transition: 100ms;
+}
+
+.source:hover {
+    background-color: #212121;
+}
+
+.source-title {
+    font-size: 1.5rem;
+    color: rgb(213, 213, 213);
+}
+
+.source-url {
+    font-size: 1.4rem;
+    color: rgb(109, 109, 240);
+}
+
+.source-length {
+    font-size: 1.3rem;
+    color: rgb(167, 167, 167);
+}
+
 .phase {
     font-size: 1.7rem;
     margin: 1rem;

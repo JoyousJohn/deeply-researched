@@ -527,6 +527,15 @@ async function getTexts(links) {
                         validResponses++;
                         allData.push(result);
                         // console.log(`${validResponses}/${totalResponses} responses completed`); // Log the progress
+                    
+                        const $sourceElm = $(`<a class="source flex flex-col" href="${link}" target="_blank">
+                            <div class="source-title">${result.title}</div>
+                            <div class="source-url">${getBaseUrl(link)}</div>
+                            <div class="source-length">${result.length.toLocaleString()} chars /
+                                ${result.text.split(/\s+/).length.toLocaleString()} words</div>
+                        </a>`)
+
+                        $('.sources').prepend($sourceElm)
                     }
                 });
                 return data;
