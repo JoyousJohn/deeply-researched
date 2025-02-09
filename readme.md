@@ -3,6 +3,8 @@
 An open-source implementation of OpenAI's Deep Research that aims to replicate its capabilities through prompt chaining with decoder-based language models. (Reasoning model support coming soon.)
 
 ![deeply_researched_preview](https://github.com/user-attachments/assets/cdd885ec-ebc3-4543-9573-ba9c7f750d7f)
+![deeply_researched_home](https://github.com/user-attachments/assets/7cfd1a34-1f2d-4722-9122-44f708bed85d)
+
 
 ## Overview
 
