@@ -94,11 +94,10 @@ async function beginSearches() {
 
             // console.log('newSources: ', newSources)
 
-            await new Promise(resolve => setTimeout(resolve, 10000));
             await checkIfSourceFulfillsDescription(newSources, relevantAndNeededSources.required_info_description);
         }
 
-        newActivity(`Choosing sources`)
+        newActivity(`Selecting sources`)
         addToModalMessage(`\n\nI'm choosing sources relevant to these requirements: ${section.description}`)
 
         // add that this only runs if the initial relevantAndNeededSources returned it has enough and didn't need to run. oteherwise checking if we have the relevant sources happens twice  on the same source ocuments data info.
@@ -113,25 +112,33 @@ async function beginSearches() {
             sourceTexts += sources[id].text + ' '
         })
 
-        newActivity(`Source text: ${sourceTexts.length.toLocaleString()} chars / ${sourceTexts.split(' ').length.toLocaleString()} words`)
+        newActivity(`Source text: ${sourceTexts.length.toLocaleString()} chars/${sourceTexts.split(' ').length.toLocaleString()} words`)
         newActivity("Drafting the section")
 
         await analyzeSearch(sourceTexts, section);
     }
 
     newActivity('Finished the response')
+    $('.activity-working').first().removeClass('activity-working').css('color', '#5bfa5b')
     newModelMessageElm()
 
     finalContent.forEach(section => {
-        addToModalMessage('\n\n\n\n' + section.section_title)
+        addToModalMessage('\n\n\n\n<span class="text-2rem">' + section.section_title + '</span>')
         addToModalMessage('\n\n' + section.section_content)
     })
+
+    enableBar();
+    clearInterval(timer)
+    $('.current-section').css('Done, awaiting instructions')
 }
 
 // }
 
 
 async function checkIfSourceFulfillsDescription(candidateSources, requiredDescription) {
+    
+    newActivity('Confirming source data')
+    
     // Use only candidateSources' descriptions (i.e. the new sources) for the check
     const candidateSourceDescriptions = Object.values(candidateSources)
         .map(source => source.description)
@@ -352,7 +359,7 @@ let sources = {}
 async function categorizeSource(index, source) {
     const url = getBaseUrl(source.url)
 
-    newActivity(`Understanding ${url}`)
+    newActivity(`Understanding ${url}`, source.url)
     const messages_payload = [
         { role: "system", content: categorizeSourcePrompt },
         { role: "user", content: `
@@ -360,7 +367,7 @@ async function categorizeSource(index, source) {
         ` }
     ]
     const data = await sendRequestToDecoder(messages_payload, '1024')
-    addTokenUsageToActivity(data.usage)
+    addTokenUsageToActivity(data.usage, source.url)
     let content;
     try {
         content = JSON.parse(data.choices[0].message.content);
@@ -411,9 +418,9 @@ async function removeRemainingCategories(categorizations) {
 
 
 async function getTexts(links) {
-    // Create an array of promises—one for each link.
-    let responses;
-    let validResponses;
+
+    let validResponses = 0; // Initialize validResponses
+    const totalResponses = links.length; // Total number of links to process
 
     let allData = []
 
@@ -430,9 +437,10 @@ async function getTexts(links) {
                 results.forEach(result => {
                     if (result.length !== 0) {
                         validResponses++;
-                        allData.push(result)
+                        allData.push(result);
+                        console.log(`${validResponses}/${totalResponses} responses completed`); // Log the progress
                     }
-                })
+                });
                 return data;
             })
         );
@@ -443,12 +451,14 @@ async function getTexts(links) {
 
     newActivity(`Analyzing ${allData.length} websites`);
 
-    // let categorizations = [];
     const startIndex = Object.keys(sources).length;
+
+    const categorizePromises = [];
 
     for (let index = 0; index < allData.length; index++) {
 
         const source = allData[index];
+        console.log(source.url)
         const this_source = {
             url: source.url,
             text: source.text,
@@ -457,10 +467,12 @@ async function getTexts(links) {
         sources[startIndex + index] = this_source; // Add to sources
         $('.status-option-sources').text(`Sources (${Object.keys(sources).length})`);
 
-        const description = await categorizeSource(startIndex + index, this_source);
-        // categorizations.push(description);
+        // Push the promise to the array
+        categorizePromises.push(categorizeSource(startIndex + index, this_source));
     }
-    // removeRemainingCategories(categorizations);
+
+    // Wait for all categorizeSource calls to complete
+    await Promise.all(categorizePromises);
     return;
 }
 

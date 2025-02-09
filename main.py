@@ -10,6 +10,7 @@ def get_links(keywords):
         return results
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == 429:
+            print(f"[INFO] Too many requests to Google.")
             return {'result': 429}
         raise
 

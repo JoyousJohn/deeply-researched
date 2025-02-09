@@ -111,7 +111,7 @@ function nextPhase() {
 }
 
 
-function addTokenUsageToActivity(usage) {
+function addTokenUsageToActivity(usage, url) {
 
     let totalTime = '';
     if (usage.total_time) {
@@ -131,7 +131,12 @@ function addTokenUsageToActivity(usage) {
         overallTokens['requests']++
     }
 
-    $('.token-count').first().text(usage.prompt_tokens + ' / ' + usage.completion_tokens + ' / ' + usage.total_tokens + ' tokens' + totalTime + cost)
+    if (url) {
+        $(`.token-count[data-activity-url="${url}"]`).first().text(usage.prompt_tokens + ' / ' + usage.completion_tokens + ' / ' + usage.total_tokens + ' tokens' + totalTime + cost)
+        $(`.token-count[data-activity-url="${url}"]`).first().parent().find('.activity-header').removeClass('activity-understanding')
+    } else {
+        $('.token-count').first().text(usage.prompt_tokens + ' / ' + usage.completion_tokens + ' / ' + usage.total_tokens + ' tokens' + totalTime + cost)
+    }
 
     overallTokens['input'] += usage.prompt_tokens
     overallTokens['output'] += usage.completion_tokens
@@ -291,14 +296,20 @@ function makeRequest(payload) {
   
 
 
-function newActivity(activity) {
+function newActivity(activity, url) {
+    if (!url) {
+        url = '';
+    }
     $('.activity-working').removeClass('activity-working')
     const $newActivityElm = $(`
     <div class="flex flex-col">
         <div class="activity-header activity-working">${activity}</div>
-        <div class="token-count"></div>
+        <div class="token-count" data-activity-url="${url}"></div>
         <div class="activity-sites flex flex-col"></div>
     </div>`)
+    if (url) {
+        $newActivityElm.find('div').first().addClass('activity-understanding')
+    }
     $('.activity').prepend($newActivityElm)
 }
 
