@@ -3,6 +3,7 @@ const defaultSettings = {
     'reasoningModelId': '',
     'reasoningBase': null,
     'reasoningKey': null,
+    'statsEnabled': true,
 
     'selectedDecoderModelId': '1',
 
@@ -121,6 +122,12 @@ $(document).ready(function() {
     }
     settings = JSON.parse(localStorage.getItem('settings'));
 
+    // Set initial state of toggle based on saved settings
+    $('#stats-toggle').prop('checked', settings.statsEnabled || false);
+    if (settings.statsEnabled) {
+        $('.overall-tokens').show();
+    }
+
     $('.decoder-bullet-wrapper').click(function() { // set event on initial element since other event handlers for others are added when cloned
         selectModel(1)
         modelSelectionPopup();
@@ -135,18 +142,16 @@ $(document).ready(function() {
     });
 
     $('#stats-toggle').change(function() {
-        if ($(this).is(':checked')) {
+        const isChecked = $(this).is(':checked');
+        settings.statsEnabled = isChecked;
+        localStorage.setItem('settings', JSON.stringify(settings));
+        
+        if (isChecked) {
             $('.overall-tokens').show();
         } else {
             $('.overall-tokens').hide();
         }
     });
-
-    if ($('#stats-toggle').is(':checked')) {
-        $('.overall-tokens').show();
-    }
-
-    
 
 })
 

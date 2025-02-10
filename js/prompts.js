@@ -268,8 +268,8 @@ Be lenient in evaluation:
 - Sources that likely contain the information are sufficient
 - Exact information doesn't need to be explicitly stated
 - Consider indirect sources that would logically contain the information
-- Break down complex missing information into smaller, focused topics
-- Take a broader approach since each piece will target a distinct aspect
+- Break down complex missing information into smaller, focused topics that identify specific gaps
+- Each missing piece should target a distinct, concrete aspect of what's needed
 - Important: You are checking if the sources described likely contain the information needed, not if the descriptions actually do.
 Search term construction rules:
 - Write as a natural search engine query (complete question or statement)
@@ -298,14 +298,14 @@ Respond with JSON (no backtick block formatting):
    "fulfills": boolean,
    "info": [
        {
-           "missing_information": "A distinct aspect of the missing information that can be searched independently",
+           "missing_information": "A distinct, specific aspect of what is missing - identify concrete gaps rather than restating the overall requirement",
            "search_term": "Search query targeting only this specific aspect"
        },
        {...}
    ]
 }
 
-If fulfills is true, return object with fulfills:true and empty info array. If fulfills is false, break down the missing information into multiple distinct aspects, with each object in the info array targeting a specific part that can be searched independently.`
+If fulfills is true, return object with fulfills:true and empty info array. If fulfills is false, break down the missing information into multiple distinct, specific aspects, with each object in the info array targeting a concrete gap that can be searched independently.`
 
 
 

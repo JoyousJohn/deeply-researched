@@ -52,6 +52,9 @@ async function beginSearches() {
 
             newActivity('Getting relevant links for: ' + section.section_title);
 
+            $('.current-search-desc').text(`Researching ${section.section_title}`)
+            $('.current-search-keywords').text(`Searching ${section.search_keywords}...`)
+
             let linksData = await getLinks(section.search_keywords);
             links = linksData.result;
 
@@ -107,6 +110,7 @@ async function beginSearches() {
 
             await checkIfSourceFulfillsDescription(newSources, relevantAndNeededSources.required_info_description);
         
+            $('.current-search-progress').text('')
             $('.current-search-desc').text('')
             $('.current-search-keywords').text('')
         
@@ -167,7 +171,7 @@ async function beginSearches() {
 
 // }
 
-const maxBranches = 3;
+const maxBranches = 2;
 
 async function checkIfSourceFulfillsDescription(candidateSources, requiredDescription, localTriedSearchTerms = new Set(), branchHistory = []) {
     
@@ -221,8 +225,8 @@ async function checkIfSourceFulfillsDescription(candidateSources, requiredDescri
         return true;
     } else {
         const info = response.info;
-        console.log("Missing info:");
-        console.table(info);
+        // console.log("Missing info:");
+        // console.table(info);
 
         let allFulfilled = true;
 
