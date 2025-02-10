@@ -349,16 +349,18 @@ function sendRequestToDecoder(messages_payload, max_tokens) {
         })
         .then(response_json => {
             if (!response_json) {
+                console.log("Response JSON:", response_json);
                 throw new Error("Invalid response format: response_json is undefined.");
             } else if (!response_json.choices) {
+                console.log("Response JSON:", response_json);
                 throw new Error("Invalid response format: response_json does not contain 'choices'.");
             } else if (response_json.choices.length === 0) {
+                console.log("Response JSON:", response_json);
                 throw new Error("Invalid response format: response_json.choices is empty.");
             }
             
             // Modify the content as needed
             response_json.choices[0].message.content = response_json.choices[0].message.content.replace('```json', '').replace('```', '');
-            console.log("Response JSON:", response_json); // Log the JSON response
             resolve(response_json);
         })
         .catch(error => {
@@ -453,7 +455,7 @@ let sources = {}
 async function categorizeSource(index, source) {
     const url = getBaseUrl(source.url)
 
-    newActivity(`Understanding ${url}`, source.url)
+    newActivity(`Understanding ${url}`, source.url, undefined, true)
     const messages_payload = [
         { role: "system", content: categorizeSourcePrompt },
         { role: "user", content: `

@@ -17,6 +17,9 @@ let remainingRequirements = {};
 let timer; // Variable to hold the timer interval
 let elapsedTime = 0; // Variable to track elapsed time
 
+// Global object to hold timers
+const activityTimers = {};
+
 setPhase('waitingForInput')
 
 function setPhase(newPhase) {
@@ -137,10 +140,12 @@ function addTokenUsageToActivity(usage, url) {
     overallTokens['requests']++
 
     if (url) {
-        $(`.token-count[data-activity-url="${url}"]:not(.activity-error)`).first().text(usage.prompt_tokens + ' / ' + usage.completion_tokens + ' / ' + usage.total_tokens + ' tokens' + totalTime + cost)
-        $(`.token-count[data-activity-url="${url}"]:not(.activity-error`).first().parent().find('.activity-header').removeClass('activity-understanding')
+        const $element = $(`.token-count[data-activity-url="${url}"]:not(.activity-error)`).first();
+        stopActivityTimer(url); // Stop the timer first
+        $element.text(usage.prompt_tokens + ' / ' + usage.completion_tokens + ' / ' + usage.total_tokens + ' tokens' + totalTime + cost);
+        $element.parent().find('.activity-header').removeClass('activity-understanding');
     } else {
-        $('.token-count:not(.activity-error').first().text(usage.prompt_tokens + ' / ' + usage.completion_tokens + ' / ' + usage.total_tokens + ' tokens' + totalTime + cost)
+        $('.token-count:not(.activity-error').first().text(usage.prompt_tokens + ' / ' + usage.completion_tokens + ' / ' + usage.total_tokens + ' tokens' + totalTime + cost);
     }
 
     if (cost) {
@@ -311,7 +316,7 @@ function makeRequest(payload) {
   
 
 
-function newActivity(activity, url, is_error) {
+function newActivity(activity, url, is_error, is_understanding) {
     if (!url) {
         url = '';
     }
@@ -329,6 +334,27 @@ function newActivity(activity, url, is_error) {
         $newActivityElm.find('.token-count').first().addClass('activity-error')
     }
     $('.activity').prepend($newActivityElm)
+
+    if (is_understanding) {
+        let secondsElapsed = 0;
+        const $tokenCount = $newActivityElm.find('.token-count');
+    
+        $tokenCount.text(`Elapsed time: 0.0s`); // Initialize with 0.0s
+        activityTimers[url] = setInterval(() => {
+            secondsElapsed += 0.1; // Increment by 0.1 seconds
+            $tokenCount.text(`${secondsElapsed.toFixed(1)}s`); // Show one decimal place
+        }, 100); // Update every 100 milliseconds
+    }
+   
+}
+
+function stopActivityTimer(url) {
+    const timer = activityTimers[url];
+    if (timer) {
+        window.clearInterval(timer); // Use window.clearInterval to be explicit
+        delete activityTimers[url];
+    }
+    $('.token-count[data-activity-url="' + url + '"]').text('');
 }
 
 function newModalUserMessage(message) {
