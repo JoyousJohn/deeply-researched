@@ -87,6 +87,7 @@ Different models of similar sizes have shown vastly different performance. Many 
 | Mistral 7B Instruct v0.3 | Poor |
 | Claude 3 Haiku | Poor |
 | WizardLM-2 8x22B | Poor |
+| Euryale 3.1 70B v2.2 | Poor |
 | | |
 | Phi 4 | Incompatible |
 | Llama 3.2 3B Instruct | Incompatible |

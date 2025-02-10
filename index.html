@@ -8,6 +8,7 @@
     <script defer src="js/index.js"></script>
     <script defer src="js/settings.js"></script>
     <script src="js/prompts.js"></script>
+    <script src="js/port.js"></script>
     <script defer src="js/search.js"></script>
     <script defer src="js/chain.js"></script>
     <script defer src="js/status.js"></script>
@@ -50,6 +51,8 @@
             <div class="chat-space-wrapper">
                 <div class="chat-space"></div>
             </div>
+
+            <div class="server-status">Verifying server connection...</div>
             
             <div class="search-wrapper">
                 <div class="flex items-start h-full">
@@ -80,7 +83,7 @@
 
         <div class="flex flex-col content-between flex-grow-1" style="overflow-y: scroll;">
             <div class="activity flex flex-col"></div>
-            <div class="sources flex flex-col"></div>
+            <div class="sources flex flex-col none"></div>
         </div>
 
         <!-- <div class="phase"></div> -->

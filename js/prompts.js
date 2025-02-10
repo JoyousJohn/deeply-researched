@@ -273,6 +273,8 @@ Example response:
     "search_term": "string" (Only include if information is missing)
 }
 
+Impotant: The missing_information sentence should be complete this sentence: "This text is missing... <missing_information>"!
+
 Before finalizing response:
 - Verify that the most critical sources are included
 - Ensure sources provide comprehensive coverage of key aspects
@@ -321,15 +323,17 @@ Respond with JSON (no backtick block formatting):
 {
     "fulfills": boolean,
     // Only include below if fulfills is false:
-    "missing_information": "Critical missing elements from the description - use provided body text to determine specific needs. List the missing information in sentence format, without describing why the information is needed or missing.",
+    "missing_information": "Critical missing elements from the description - use provided body text to determine specific needs. List the missing information in sentence format, without describing why the information is needed or missing. ",
     "search_term": "Search query following rules below"
 }
+
+Impotant: The missing_information sentence should be complete this sentence: "This text is missing... <missing_information>"!
 `
 
 const analyzeArticlesPrompt = `You will be provided the subject of a section, its description, and a string containing all of the source material. Write **only the raw content** for this specific section as part of a longer document. Your task is to **extract and analyze only the information directly relevant to the section's description**. Do **not** summarize or cover all information from the source text. Follow these guidelines:
 
 1. **Strictly adhere to the section's description**—only include information that directly addresses the description's requirements. Ignore anything irrelevant.
-2. **Use specific evidence** (examples, quotes, data) from the provided sources to support your points. Do not include unsupported claims or generalizations.
+2. **Use specific evidence** (examples, quotes, data) from the provided sources to support your points. Do not include unsupported claims or generalizations. 
 3. **Analyze patterns, relationships, and themes** relevant to the section's focus. Avoid broad summaries of the source material.
 4. **Explain complex ideas clearly** and incorporate multiple perspectives where applicable.
 5. **Prioritize depth over breadth**—focus on key insights and their significance, not on covering everything in the source text.
@@ -349,6 +353,7 @@ const analyzeArticlesPrompt = `You will be provided the subject of a section, it
 - Break up large and long blocks of text into paragraphs separated by new lines for easier reading.
 - Directly address the description's points in detail, using **only the most relevant evidence** from the source material.`
 
+// **After every paragraph in your response**: Include the source ID of the sources you used by wrwapping the source ID integer (from the supplied dictionary) in square brackets.
 
 
 

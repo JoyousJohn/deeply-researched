@@ -118,15 +118,16 @@ async function beginSearches() {
 
         newActivity(`Using ${required_source_ids.length} sources`)
 
-        let sourceTexts;
+        let sourceTexts = {};
         required_source_ids.forEach(id => {
-            sourceTexts += sources[id].text + ' '
+            // sourceTexts += sources[id].text + ' '
+            sourceTexts[id] = sources[id].text
         })
 
-        newActivity(`Source text: ${sourceTexts.length.toLocaleString()} chars/${sourceTexts.split(' ').length.toLocaleString()} words`)
+        newActivity(`Source text: ${Object.keys(sourceTexts).length.toLocaleString()} chars/${JSON.stringify(sourceTexts).split(' ').length.toLocaleString()} words`)
         newActivity("Drafting the section")
 
-        await analyzeSearch(sourceTexts, section);
+        await analyzeSearch(JSON.stringify(sourceTexts), section);
     }
 
     newActivity('Finished the response')
@@ -163,6 +164,8 @@ async function beginSearches() {
 
 async function checkIfSourceFulfillsDescription(candidateSources, requiredDescription) {
     
+    return true;
+
     newActivity('Confirming source data')
     
     // Use only candidateSources' descriptions (i.e. the new sources) for the check
@@ -415,7 +418,7 @@ async function analyzeSearch(searchData, section) {
 
 function getLinks(keywords) {
     return new Promise((resolve, reject) => {
-        fetch(`http://localhost:8000/get_links?keywords=${encodeURIComponent(keywords)}`)
+        fetch(`http://localhost:${port}/get_links?keywords=${encodeURIComponent(keywords)}`)
             .then(response => response.json())
             .then(data => {
                 resolve(data);
