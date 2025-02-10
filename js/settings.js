@@ -146,6 +146,8 @@ $(document).ready(function() {
         $('.overall-tokens').show();
     }
 
+    
+
 })
 
 $(document).keydown(function(event) {
@@ -161,6 +163,11 @@ $(document).keydown(function(event) {
             $('.settings-wrapper').show();
             populateInputs();
         }
+    }
+    else if (event.key === "u" || event.key === "U") {
+        $('#stats-toggle').prop('checked', function(i, value) {
+            return !value;
+        }).change();
     }
 });
 

@@ -164,8 +164,6 @@ async function beginSearches() {
 
 async function checkIfSourceFulfillsDescription(candidateSources, requiredDescription) {
     
-    return true;
-
     newActivity('Confirming source data')
     
     // Use only candidateSources' descriptions (i.e. the new sources) for the check
