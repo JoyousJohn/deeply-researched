@@ -47,13 +47,13 @@ async function beginSearches() {
         newActivity('Finding information for: ' + section.section_title)
         $('.current-section').text(`Working on section ${count}/${plan.length}`)
 
+        $('.current-search-desc').text(`Researching ${section.section_title}`)
+        $('.current-search-keywords').text(`Searching ${section.search_keywords}...`)
+
         let links;
         if (count === 1) {
 
             newActivity('Getting relevant links for: ' + section.section_title);
-
-            $('.current-search-desc').text(`Researching ${section.section_title}`)
-            $('.current-search-keywords').text(`Searching ${section.search_keywords}...`)
 
             let linksData = await getLinks(section.search_keywords);
             links = linksData.result;
@@ -124,7 +124,7 @@ async function beginSearches() {
         // add that this only runs if the initial relevantAndNeededSources returned it has enough and didn't need to run. oteherwise checking if we have the relevant sources happens twice  on the same source ocuments data info.
         relevantAndNeededSources = await getRelevantAndNeededSources(section.description)
 
-        const required_source_ids = relevantAndNeededSources.source_ids
+        const required_source_ids = relevantAndNeededSources.source_ids.slice(0, 20) 
 
         newActivity(`Using ${required_source_ids.length} sources`)
 
@@ -170,8 +170,6 @@ async function beginSearches() {
 }
 
 // }
-
-const maxBranches = 2;
 
 async function checkIfSourceFulfillsDescription(candidateSources, requiredDescription, localTriedSearchTerms = new Set(), branchHistory = []) {
     
@@ -295,7 +293,7 @@ async function checkIfSourceFulfillsDescription(candidateSources, requiredDescri
 
             if (newLinks.length === 0) {
                 newActivity("No new links found for additional information.");
-                allFulfilled = false;
+                allFulfilled = true;
                 continue;
             }       
             
@@ -639,7 +637,7 @@ async function getTexts(links) {
             length: source.length
         };
         sources[startIndex + index] = this_source; // Add to sources
-        $('.status-option-sources').text(`Sources (${Object.keys(sources).length})`);
+        // $('.status-option-sources').text(`Sources (${Object.keys(sources).length})`);
 
         // Push the promise to the array
         categorizePromises.push(categorizeSource(startIndex + index, this_source));

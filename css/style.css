@@ -11,6 +11,10 @@ body {
     display: none;
 }
 
+.gap-y-0p5rem {
+    row-gap: 0.5rem;
+}
+
 .gap-y-1rem {
     row-gap: 1rem;
 }
@@ -224,7 +228,7 @@ body {
     background-repeat: no-repeat;
     background-size: contain;
     filter: contrast(0%);
-    opacity: 0.15;
+    opacity: 0.10;
 }
 
 .chat-space-wrapper {
@@ -503,7 +507,7 @@ textarea::-webkit-scrollbar {
 
 .status-options {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
     background-color: rgb(62, 62, 62);
     border-radius: 3rem;
     margin: 1rem 3.5rem;
@@ -630,7 +634,7 @@ textarea::-webkit-scrollbar {
 }
 
 .overall-tokens {
-    font-size: 1.5rem;
+    font-size: 1.4rem;
     color: #fcd971;
     /* margin: 1rem; */
     text-align: center;
@@ -692,7 +696,7 @@ textarea::-webkit-scrollbar {
 
 .current-search-nested {
     border-left: 1px solid #767676;
-    padding-left: 1rem;
+    padding-left: 2rem;
 }
 
 .throbber {

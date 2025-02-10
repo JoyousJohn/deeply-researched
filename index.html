@@ -3,6 +3,7 @@
     <title>Deeply Researched</title>
     <link rel="stylesheet" type="text/css" href="css/style.css">
     <link rel="stylesheet" type="text/css" href="css/toggle.css">
+    <link rel="stylesheet" type="text/css" href="css/outline.css">
     <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
     <script src="js/ver.js"></script>
     <script defer src="js/index.js"></script>
@@ -11,6 +12,7 @@
     <script src="js/port.js"></script>
     <script defer src="js/search.js"></script>
     <script defer src="js/chain.js"></script>
+    <script defer src="js/outline.js"></script>
     <script defer src="js/status.js"></script>
     <link href="https://fonts.cdnfonts.com/css/inter-tight" rel="stylesheet">
     <link rel="icon" type="image/png" href="img/deeply_researched.png">
@@ -76,7 +78,7 @@
                 </div>
             </div>
 
-            <!-- <div class="demo-disclaimer">Demo mode active, responses are pre-generated.</div> -->
+            <div class="demo-disclaimer none">You're currently viewing the non-functioning, static demo UI.</div>
 
         </div>
 
@@ -87,11 +89,13 @@
         <div class="status-options">
             <div class="status-option status-option-selected" data-option="activity">Activity</div>
             <div class="status-option status-option-sources" data-option="sources">Sources</div>
+            <div class="status-option status-option-outline" data-option="outline">Outline</div>
         </div>
 
         <div class="flex flex-col content-between flex-grow-1" style="overflow-y: scroll;">
             <div class="activity flex flex-col"></div>
             <div class="sources flex flex-col" style="display: none;"></div>
+            <div class="outline flex flex-col" style="display: none;"></div>
         </div>
 
         <!-- <div class="phase"></div> -->
@@ -166,6 +170,7 @@
                                     <div data-base="https://generativelanguage.googleapis.com/v1beta/openai/chat/completions">Google</div>
                                     <div data-base="https://api.groq.com/openai/v1/chat/completions">Groq</div>
                                     <div data-base="https://api.hyperbolic.ai/v1/chat/completions">Hyperbolic</div>
+                                    <div data-base="https://api.mistral.ai/v1/chat/completions">Mistral</div>
                                     <div data-base="https://api.openai.com/v1/chat/completions">OpenAI</div>
                                     <div data-base="https://openrouter.ai/api/v1/chat/completions">OpenRouter</div>
                                     <div data-base="https://api.sambanova.ai/v1/chat/completions">SambaNova</div>

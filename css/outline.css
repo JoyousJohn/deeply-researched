@@ -1,0 +1,44 @@
+.outline {
+    margin: 3rem 0;
+    row-gap: 3rem;
+    line-height: 1.45;
+}
+
+.outline > div {
+    padding: 0 3rem;
+    cursor: pointer;
+}
+
+.outline-section {
+    display: flex;
+    flex-direction: column;
+    row-gap: 1rem;
+    padding: 1rem;
+}
+
+.section-dropdown {
+    font-size: 1.7rem;
+    color: rgb(131, 135, 192);
+    margin-right: 2rem;
+    transition: 100ms;
+}
+
+/* .section-dropdown:hover {
+    color: #444dbf;
+} */
+
+.outline-section-title {
+    font-size: 1.6rem;
+    color: #f1f1f1;
+    transition: 150ms;
+}
+
+.outline-section-keywords {
+    font-size: 1.5rem;
+    color: rgb(152, 152, 152);
+}
+
+.outline-section-desc {
+    color: #c9c9c9;
+    font-size: 1.55rem;
+}

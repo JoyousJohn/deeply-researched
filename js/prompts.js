@@ -94,7 +94,7 @@ Your task is to create detailed sections for a professional document that will f
 
 Guidelines:
 
-* Include *only* the sections necessary to comprehensively address the *explicit* goals. Do not add sections based on assumptions or general knowledge of the topic.
+* Include *only* the sections necessary to comprehensively address the *explicit* goals. Do not add sections based on assumptions or general knowledge of the topic. If the provided query contains very specific goals, your sections should target these goals. If the query is very short, focus on the minimum amount of required sections to sufficiently complete the task.
 * Ensure each section has a clear purpose *directly related* to the requests and adds unique value in fulfilling those requests.
 * Focus *exclusively* on the explicit requirements and information provided. Do not infer or add implicit needs.
 * The description for each section should comprehensively detail:

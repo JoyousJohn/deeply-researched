@@ -302,6 +302,7 @@ function makeRequest(payload) {
 
             addTokenUsageToActivity(usage, undefined, latestTimerId())
             newActivity('Planned an outline');
+            addPlanToOutline()
             beginSearches();
             // setPhase('createRequirements')
             // nextPhase()

@@ -1,3 +1,5 @@
+const maxBranches = 2;
+
 const defaultSettings = {
     'braveKey': null,
     'reasoningModelId': '',
@@ -170,6 +172,7 @@ $(document).keydown(function(event) {
         }
     }
     else if (event.key === "u" || event.key === "U") {
+        if ($(document.activeElement).is('textarea')) return
         $('#stats-toggle').prop('checked', function(i, value) {
             return !value;
         }).change();

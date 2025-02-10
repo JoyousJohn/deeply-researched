@@ -41,21 +41,28 @@ document.addEventListener('DOMContentLoaded', function() {
 
     checkVersion();
 
-    // fetch('http://localhost:' + port)
-    //     .then(response => {
-    //         if (response.ok) {
-    //             $('.server-status').fadeOut().text('Server connected!').fadeIn().css('color', '#70ff70');
-    //             setTimeout(() => {
-    //                 $('.server-status').fadeOut();
-    //             }, 5000);
-    //         }
-    //     })
-    //     .catch(error => {
-    //         $('.server-status').fadeOut().text(`Couldn't connect to server`).fadeIn().css('color', '#ff5f5f'); 
-    //         setTimeout(() => {
-    //             $('.server-status').fadeOut();
-    //         }, 5000);
-    //     });
+    if (window.location.href === 'https://joyousjohn.github.io/deeply-researched/') {
+        $('.demo-disclaimer').show();
+        $('.server-status').hide();
+        return;
+    }
+
+    fetch('http://localhost:' + port)
+        .then(response => {
+            if (response.ok) {
+                $('.server-status').fadeOut().text('Server connected!').fadeIn().css('color', '#70ff70');
+                setTimeout(() => {
+                    $('.server-status').fadeOut();
+                }, 5000);
+            }
+        })
+        .catch(error => {
+            $('.server-status').fadeOut().text(`Couldn't connect to server`).fadeIn().css('color', '#ff5f5f'); 
+            setTimeout(() => {
+                $('.server-status').fadeOut();
+            }, 5000);
+        });
+
 });
 
 $('.settings').click(function() {
