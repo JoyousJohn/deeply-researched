@@ -44,7 +44,7 @@ Future, optional, Brave Search API integration will fully eliminate the need for
 3. Navigate to the project directory
 4. (Optional) Create and activate a virtual environment
 5. Install the 3 required dependencies: googlesearch, newspaper, and fake-useragent: `` pip install -r requirements.txt ``
-6. Start the server: ``python -m http.server``
+6. Start the server: ``py main.py``
 7. Access the interface through index.html in your browser
 
 ## Configuration

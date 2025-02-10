@@ -106,6 +106,10 @@ async function beginSearches() {
             // console.log('newSources: ', newSources)
 
             await checkIfSourceFulfillsDescription(newSources, relevantAndNeededSources.required_info_description);
+        
+            $('.current-search-desc').text('')
+            $('.current-search-keywords').text('')
+        
         }
 
         newActivity(`Context validated`)
@@ -163,8 +167,9 @@ async function beginSearches() {
 
 // }
 
+const maxBranches = 3;
 
-async function checkIfSourceFulfillsDescription(candidateSources, requiredDescription) {
+async function checkIfSourceFulfillsDescription(candidateSources, requiredDescription, localTriedSearchTerms = new Set(), branchHistory = []) {
     
     newActivity('Confirming source data', undefined, undefined, true)
     
@@ -173,9 +178,9 @@ async function checkIfSourceFulfillsDescription(candidateSources, requiredDescri
         .map(source => source.description)
         .filter(desc => desc && desc.trim().length > 0);
         
-    const triedKeywordsArray = Array.from(globalTriedSearchTerms);
+    const triedKeywordsArray = Array.from(localTriedSearchTerms);
     // Prepare prompt input combining the required description, the new source descriptions, 
-    // and previously tried keywords
+    // and previously tried keywords for this branch
     const promptInput = `Required information description: ${requiredDescription}
                         Source descriptions (new sources): ${JSON.stringify(candidateSourceDescriptions)}
                         Previously attempted search terms: ${JSON.stringify(triedKeywordsArray)}`;
@@ -196,60 +201,98 @@ async function checkIfSourceFulfillsDescription(candidateSources, requiredDescri
         return false;
     }
 
-    // console.log(response);
+    addTokenUsageToActivity(data.usage, undefined, latestTimerId());
 
-    addTokenUsageToActivity(data.usage, undefined, latestTimerId())
-
-    if (response.fulfills === true) {
+    if (response.fulfills === true || branchHistory.length + 1 === maxBranches) {
+        console.log("Fulfilled")
         newActivity("Fulfilled section requirements");
+        if (branchHistory.length !== 0) {
+            $('.current-search-nested').last().remove();
+        }
         return true;
     } else {
 
-        if (!response.missing_information) {
-            console.log('missing')
-            console.log(response)
+        const info = response.info;
+
+        console.log("Missing info:");
+        console.table(info);
+
+        for (let missing_topic of info) {
+            
+            // Log prior missing information and search terms from this branch, if any.
+
+            if (branchHistory.length > 0) {
+                console.log("Prior branch missing information and search terms:");
+                branchHistory.forEach(entry => {
+                    console.log(`Missing Information: ${entry.missing_information} | Search Term: ${entry.search_term}`);
+                });
+            }
+            
+            // Log the current branch depth (branchHistory length + 1)
+            console.log("=== New Search Iteration ===");
+            console.log("Current branch depth:", branchHistory.length + 1);
+            console.log("Missing Information:", missing_topic.missing_information);
+            console.log("Search Term:", missing_topic.search_term);
+            console.log("========================");
+
+            newActivity(`Missing information: ${missing_topic.missing_information}`);
+            newActivity(`Searching for: "${missing_topic.search_term}"`);
+
+            if (branchHistory.length !== 0) {
+                const $newProgressElm = $(`<div class="current-search-nested">
+                    <div class="current-search-desc">Finding ${missing_topic.missing_information.charAt(0).toLowerCase() + missing_topic.missing_information.slice(1)}...</div>
+                    <div class="current-search-keywords">Searching "${missing_topic.search_term}"</div>
+                </div>`)
+                $('.current-search-keywords').last().html($newProgressElm)
+            } else {
+                $('.current-search-desc').text(`Finding ${missing_topic.missing_information.charAt(0).toLowerCase() + missing_topic.missing_information.slice(1)}...`)
+                $('.current-search-keywords').text(`Searching "${missing_topic.search_term}"`)
+            }
+
+            // For this branch, create a fresh set so that search terms from other searches do not interfere.
+            const branchTriedSearchTerms = new Set();
+            branchTriedSearchTerms.add(missing_topic.search_term);
+            
+            // Create updated branch history including the current iteration
+            const currentBranchHistory = [
+                ...branchHistory, 
+                { missing_information: missing_topic.missing_information, search_term: missing_topic.search_term }
+            ];
+            
+            // Fetch new links based on the search term provided by the prompt
+            const linksData = await getLinks(missing_topic.search_term);
+            // Filter out links that have already been processed
+            if (!Array.isArray(linksData.result)) {
+                console.error("Error: linksData.result is not an array:", linksData.result);
+                newActivity("Received unexpected data format for links.");
+                return false;
+            }
+            let newLinks = linksData.result.filter(link => !globalProcessedLinks.has(link));
+
+            if (newLinks.length === 0) {
+                newActivity("No new links found for additional information.");
+                return false;
+            }       
+            
+            newActivity(`Searching ${newLinks.length} websites.`);
+            appendURLS(newLinks);
+
+            // Capture the keys before fetching new texts
+            const sourcesBeforeKeys = new Set(Object.keys(sources));
+            // Fetch texts from the new links; this will update the global 'sources' object.
+            await getTexts(newLinks);
+            // Determine which sources were newly added
+            const newSourceKeys = Object.keys(sources).filter(key => !sourcesBeforeKeys.has(key));
+            const newSources = {};
+            newSourceKeys.forEach(key => {
+                newSources[key] = sources[key];
+            });
+
+            // Recursively check again—but now only with the newly added sources, a fresh branch search terms set,
+            // and the updated branch history that carries prior missing info and search term details.
+            return await checkIfSourceFulfillsDescription(newSources, missing_topic.missing_information, branchTriedSearchTerms, currentBranchHistory);
         }
-
-        newActivity(`Missing information: ${response.missing_information}`);
-        newActivity(`Searching for: "${response.search_term}"`);
-
-        // Track the search term so it is not reused in subsequent iterations
-        globalTriedSearchTerms.add(response.search_term);
         
-        // Fetch new links based on the search term provided by the prompt
-        const linksData = await getLinks(response.search_term);
-        // Filter out links that have already been processed
-        if (!Array.isArray(linksData.result)) {
-            console.error("Error: linksData.result is not an array:", linksData.result);
-            newActivity("Received unexpected data format for links.");
-            return false;
-        }
-        let newLinks = linksData.result.filter(link => !globalProcessedLinks.has(link));
-
-        if (newLinks.length === 0) {
-            newActivity("No new links found for additional information.");
-            return false;
-        }        
-        
-        newActivity(`Searching ${newLinks.length} websites.`);
-        appendURLS(newLinks);
-
-        // Capture the keys before fetching new texts
-        const sourcesBeforeKeys = new Set(Object.keys(sources));
-        // Fetch texts from the new links; this will update the global 'sources' object.
-        await getTexts(newLinks);
-        // await new Promise(resolve => setTimeout(resolve, 10000));
-
-        // Determine which sources were newly added
-        const newSourceKeys = Object.keys(sources).filter(key => !sourcesBeforeKeys.has(key));
-        const newSources = {};
-        newSourceKeys.forEach(key => {
-            newSources[key] = sources[key];
-        });
-
-        // await new Promise(resolve => setTimeout(resolve, 10000));
-        // Recursively check again—but now only with the newly added sources.
-        return await checkIfSourceFulfillsDescription(newSources, requiredDescription);
     }
 }
 
@@ -501,30 +544,6 @@ function handleError(sourceUrl, url) {
     globalProcessedLinks.delete(sourceUrl);
     console.log(`Failed to parse JSON for website: ${url} (Source URL: ${sourceUrl})`);
 }
-
-
-async function removeRemainingCategories(categorizations) {
-
-    newActivity("Updating requirements")
-
-    const messages_payload = [
-        { role: "system", content: removeRemainingCategoriesPrompt },
-        { role: "user", content: `
-            required_sources: ${Object.values(requirements)}
-            descriptions: ${categorizations}
-        ` }
-    ]
-    const data = await sendRequestToDecoder(messages_payload)
-    const content = JSON.parse(data.choices[0].message.content);
-
-    const requirements_to_eliminate = content.existing_source_ids;
-
-    requirements_to_eliminate.forEach(req => {
-        // console.log(`Removing requirement with key: ${remainingRequirements[req]}`);
-        delete remainingRequirements[req];
-    });
-}
-
 
 async function getTexts(links) {
 

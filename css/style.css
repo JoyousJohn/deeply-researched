@@ -649,14 +649,40 @@ textarea::-webkit-scrollbar {
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
-    font-size: 1.6rem;
+    font-size: 1.5rem;
     background-color: #353535;
-    color: rgb(225, 225, 225);
-    padding: 0.8rem 2rem;
+    color: rgb(205, 205, 205);
+    padding: 1.5rem 2rem;
     border-radius: 1rem;
-    margin: 1rem;
-    width: 20vw;
+    margin: 1.5rem 1rem;
+    min-width: 20vw;
     box-shadow: 0 0 16px rgba(0, 0, 0, 0.5);
+    z-index: 1;
+}
+
+.current-search {
+    max-width: 40vw;
+    width: max-content;
+}
+
+.current-search-desc {
+    font-size: 1.5rem !important;
+}
+
+.current-search-desc:not(:has(~ .current-search-desc)) {
+    color: rgb(220, 220, 220);
+}
+
+.current-search-keywords {
+    font-size: 1.4rem;
+    color: gray;
+    margin-top: 0.5rem;
+}
+
+
+.current-search-nested {
+    border-left: 1px solid #767676;
+    padding-left: 1rem;
 }
 
 .throbber {

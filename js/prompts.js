@@ -187,32 +187,6 @@ Example of valid response:
 }
 `
 
-
-const removeRemainingCategoriesPrompt = `You will be provided a dictionary of senteces ("required_sources") describing descriptions of all the sources needed to sufficiently find enough information to write a paper. These are indexed by their numerical key. You will also be provided an array of sentences ("descriptions") describing the content different existing sources contain. Your job is to return a list of the indexes of the sentence source descriptions that are sufficiently covered by the existing sources' descriptions.
-
-Return a JSON object in the following format:
-{
-    "existing_source_ids": <array of integers>
-}
-    
-Do not return any text outside of the JSON object. Only return the raw text JSON object. Do not format the text.`
-
-
-const sourceToSearchTermPrompt = `You are being provided a description of a required source to write a document about the topic. Your task is to return a search term that can be inputted into a search engine to obtain websites that will contain sources containing text fulfilling the provided description.
-
-Return a JSON object in the following format:
-{
-    "search_term": <string search term>
-}
-Do not return any text outside of the JSON object. Only return the raw text JSON object. Do not format the text.`
-
-
-//The categories returned must have been in the provided category list.
-
-
-//2) return an array containing the indexes of any of the categories from the dictionary array of categories that the text may fall into
-//     "categories": <an array of integers representing which of the provided categories this text falls into, if any at all>
-
 const selectSourcesPrompt = `Task: Analyze a research section description and identify the most relevant information sources (maximum 20) from the provided dictionary, prioritizing the most critical and directly relevant sources while maintaining thoroughness in selection. Return a JSON object with prioritized source IDs and/or missing information details.
 
 Inputs:
@@ -281,19 +255,20 @@ Before finalizing response:
 - Confirm selection represents the most important perspectives
 - Check that the source_ids list is properly prioritized
 `
-const checkFulfillsDescriptionPrompt = `Evaluate if source descriptions fulfill a required information description. Consider that details can be reasonably inferred or expanded from context.
 
+
+const checkFulfillsDescriptionPrompt = `Evaluate if source descriptions fulfill a required information description. Consider that details can be reasonably inferred or expanded from context.
 Mark information as missing only if:
 - It's essential to core requirements
 - Cannot be reasonably derived from provided content
 - Is truly critical (not minor details)
-
 Be lenient in evaluation:
 - Sources that likely contain the information are sufficient
 - Exact information doesn't need to be explicitly stated
 - Consider indirect sources that would logically contain the information
+- Break down complex missing information into smaller, focused topics
+- Take a broader approach since each piece will target a distinct aspect
 - Important: You are checking if the sources described likely contain the information needed, not if the descriptions actually do.
-
 Search term construction rules:
 - Write as a natural search engine query (complete question or statement)
 - Include main technical concept/topic as primary subject
@@ -303,32 +278,71 @@ Search term construction rules:
 - Use quotes for multi-word technical terms/exact phrases
 - Focus solely on specific missing information
 - If multiple searches attempted:
-  - Adopt broader, more general approach
-  - Try different perspectives (historical/recent, formal/informal)
-  - Consider alternative sources/contexts
-  - If previous queries focused on direct subject, try related topics
-  - Review previous queries to avoid repetition
-
-Search terms should resemble natural Google searches, not academic titles. Each new search should take a completely different approach while targeting the core missing information.
-
+ - Adopt broader, more general approach
+ - Try different perspectives (historical/recent, formal/informal)
+ - Consider alternative sources/contexts
+ - If previous queries focused on direct subject, try related topics
+ - Review previous queries to avoid repetition
+Search terms should resemble natural Google searches, not academic titles. Each search term should focus on a distinct aspect of the missing information rather than trying to find everything in one search.
 Important formatting rules:
 - Do not return any text outside of the JSON object
 - Do not format or prettify your response
 - Return your JSON object response in raw-text
-- The description should be one continuous string without line breaks
+- The descriptions should be one continuous string without line breaks
 - Do not wrap your response in a json code block
-- Do not wrap your response with backticks;
-
+- Do not wrap your response with backticks
 Respond with JSON (no backtick block formatting):
 {
-    "fulfills": boolean,
-    // Only include below if fulfills is false:
-    "missing_information": "Critical missing elements from the description - use provided body text to determine specific needs. List the missing information in sentence format, without describing why the information is needed or missing. ",
-    "search_term": "Search query following rules below"
+   "fulfills": boolean,
+   "info": [
+       {
+           "missing_information": "A distinct aspect of the missing information that can be searched independently",
+           "search_term": "Search query targeting only this specific aspect"
+       },
+       {...}
+   ]
 }
 
-Impotant: The missing_information sentence should be complete this sentence: "This text is missing... <missing_information>"!
-`
+If fulfills is true, return object with fulfills:true and empty info array. If fulfills is false, break down the missing information into multiple distinct aspects, with each object in the info array targeting a specific part that can be searched independently.`
+
+
+
+// More leniant prompt
+// const checkFulfillsDescriptionPrompt = `Evaluate if source descriptions fulfill a required information description. Consider that details can be reasonably inferred or expanded from the context.
+// Mark information as missing only if:
+// - It is an absolute and critical element indispensable for the core requirements and cannot be reasonably deduced from the provided descriptions.
+// - It is essential for understanding or executing the task and is not implied by any surrounding context.
+// Be lenient in evaluation:
+// - Accept sources that indirectly suggest or likely contain the necessary information.
+// - Consider that key details may be inferred through context even if not explicitly stated.
+// - Focus on identifying only significant gaps rather than every minor omission.
+// Search term construction rules:
+// - Write as a natural search engine query including the main technical concept/topic.
+// - Add qualifiers (versions, frameworks, methodologies) for clarity.
+// - Specify content type (tutorial, documentation, etc.) if relevant.
+// - Include a recent year range for technology topics when applicable.
+// - Use quotes for multi-word technical terms/exact phrases.
+// - Focus solely on articulating the specific missing information, if any.
+// - If multiple searches are attempted, adopt broader, more general approaches or different perspectives to avoid repetition.
+// Important formatting rules:
+// - Do not return any text outside of the resulting JSON object.
+// - Do not prettify or add extra formatting to your response.
+// - The descriptions must be one continuous string without line breaks.
+// - Do not wrap your response in a JSON code block or with additional backticks.
+// Return response using raw-text JSON in the following format:
+// {
+//    "fulfills": boolean,
+//    "info": [
+//        {
+//            "missing_information": "A distinct aspect of the missing information that can be searched independently",
+//            "search_term": "Search query targeting only this specific aspect"
+//        },
+//        {...}
+//    ]
+// }
+// If the descriptions fulfill the required information, return {"fulfills": true} with an empty info array. If not, break down the missing information into multiple distinct aspects with each object targeting a specific missing part.
+// `;
+
 
 const analyzeArticlesPrompt = `You will be provided the subject of a section, its description, and a string containing all of the source material. Write **only the raw content** for this specific section as part of a longer document. Your task is to **extract and analyze only the information directly relevant to the section's description**. Do **not** summarize or cover all information from the source text. Follow these guidelines:
 
