@@ -17,7 +17,7 @@ https://github.com/user-attachments/assets/980cd4be-7ccf-48e9-b696-3c3cc4f52c5d
 Mimicing OpenAI Deep Research, Deeply Researched is a browser-based research tool capable of searching the web with iterative self-refinement. The system breaks down complex queries into subtasks, continuously validates its progress, and automatically locates sources to find and explore relevant information.
 
 ### Performance
-Deeply Researched has demonstrated comparable results to Deep Research while maintaining efficiency across various model sizes. Even models as small as Llama 8B yield satisfactory results, with inexpensive Nova Lite 1.0 producing superb outputs.
+Deeply Researched has demonstrated comparable results to Deep Research while maintaining efficiency across various model sizes. Even models as small as Llama 8B yield satisfactory results, with inexpensive Nova Lite 1.0 already producing stellar outputs.
 
 ### Key Features
 - Iterative task decomposition and validation
@@ -55,6 +55,33 @@ Future, optional, Brave Search API integration will fully eliminate the need for
    - Base URL
    - API key (saved in browser local storage)
 3. Save your configuration
+
+## Modification
+
+Deeply Research primarily functions by recursive prompting. All prompts are located in ``js/prompt.js`` in order of which they're called and can be modified to your liking to test alternative behavior.
+
+## How it Works
+
+1. The user enters a task, research query, or directive
+2. This prompt is analyzed for missing information and brevity and follow-up questions are asked to refine the task as many times as needed
+3. The initial prompt and follow-up answers are used to formulate a formal research query, required materials, and requisite formatting instructions
+4. The formal query is refined to ensure completeness and strict instruction following
+5. The query is broken down into discrete sections to be independently completed
+6. The outline is refined to confirm alignment with user prompts
+7. For each section:
+   1. Initial sources are fetched and contents analyzed and indexed, irrelevant sources are discarded
+   2. Remaining required information is highlighted
+   3. The web is recursively searched until all source information is found, including initiating advanced search subtasks where needed
+   4. Relevant sources are selected
+   5. A draft response is generated
+   6. The draft is refined to eliminate repetition
+   7. The section is confirmed to comply with requirements, else backtrack to the required step above and recurse
+   8. Text near the end of the prior section is rewritten to ensure a smooth transition
+   9. Section is confirmed to still follow all required formatting after all refinement
+8. The final response is assembled and undergoes final validation
+9. Final response is shown and Deeply Seeked waits for additional instructions 
+
+Notably, excessively large contexts are never sent to the model. This prompt chaining allows even SMLs to abide by strict and complex instruction following to produce excellent responses at a low cost with minimal token-throughput. The only downside with this precise thinking is the required inference time.
 
 ## Tested Model Results
 
