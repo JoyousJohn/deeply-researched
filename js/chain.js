@@ -59,7 +59,7 @@ function nextPhase() {
             {role: "system", content: isResearchTopic},
             {role: "user", content: "The user's query is: " + input}
         ]
-        newActivity('Understanding the request')
+        newActivity('Understanding the request', undefined, undefined, true)
         stats['start_time'] = new Date();
         startTimer()
         
@@ -69,7 +69,7 @@ function nextPhase() {
             {role: "system", content: narrowQuestionPrompt},
             {role: "user", content: "The user's research query is: " + input}
         ]
-        newActivity('Generating questions to narrow the task');
+        newActivity('Generating questions to narrow the task', undefined, undefined, true);
     
     }  else if (phase === 'refiningQuestionsAsked') {
 
@@ -84,7 +84,7 @@ function nextPhase() {
 
         setPhase('refineTaskWithAnsweredQuestions')
         newActivity('User answered refining questions');
-        newActivity("Refining the task");
+        newActivity("Refining the task", undefined, undefined, true);
     
 
     } else if (phase === 'createSections') {
@@ -93,7 +93,7 @@ function nextPhase() {
             {role: "user", content: `Research query: ${refinedRequest}`}
         ]
 
-        newActivity('Creating a search plan');
+        newActivity('Creating a search plan', undefined, undefined, true);
     
     } else if (phase === 'createRequirements') {
 
@@ -118,7 +118,9 @@ function nextPhase() {
 }
 
 
-function addTokenUsageToActivity(usage, url) {
+function addTokenUsageToActivity(usage, url, timerId) {
+
+    // alert(timerId)
 
     let totalTime = '';
     if (usage.total_time) {
@@ -141,11 +143,15 @@ function addTokenUsageToActivity(usage, url) {
 
     if (url) {
         const $element = $(`.token-count[data-activity-url="${url}"]:not(.activity-error)`).first();
-        stopActivityTimer(url); // Stop the timer first
         $element.text(usage.prompt_tokens + ' / ' + usage.completion_tokens + ' / ' + usage.total_tokens + ' tokens' + totalTime + cost);
         $element.parent().find('.activity-header').removeClass('activity-understanding');
     } else {
         $('.token-count:not(.activity-error').first().text(usage.prompt_tokens + ' / ' + usage.completion_tokens + ' / ' + usage.total_tokens + ' tokens' + totalTime + cost);
+    }
+
+    if (timerId) {
+        // console.log(`Stopping timer with id: ${timerId}`)
+        stopActivityTimer(timerId);
     }
 
     if (cost) {
@@ -192,6 +198,10 @@ function addTokenUsageToActivity(usage, url) {
 
 }
 
+
+function latestTimerId() {
+    return parseInt(Object.keys(activityTimers)[0]);
+}
 
 function makeRequest(payload) {
     fetch(decoderBase, {
@@ -240,15 +250,17 @@ function makeRequest(payload) {
             newModelMessageElm()
             addToModalMessage(msgStr)
 
-            addTokenUsageToActivity(usage)
+            addTokenUsageToActivity(usage, undefined, latestTimerId())
             setPhase('refiningQuestionsAsked')
             newActivity('Asking user to refine their request');
             enableBar();
 
         } else if (phase === 'confirmingValidTopic') {
 
+            addTokenUsageToActivity(usage, undefined, latestTimerId())
+
             if (context.is_valid_request === true) {
-                addTokenUsageToActivity(usage)
+                // alert(Object.keys(activityTimers)[0])
                 newActivity('Request confirmed');
                 setPhase('refiningRequest');
                 nextPhase();
@@ -268,7 +280,7 @@ function makeRequest(payload) {
             refinedRequest = context.description;
             newModelMessageElm(true);
             addToModalMessage('I have generated a research query: ' + refinedRequest)
-            addTokenUsageToActivity(usage)
+            addTokenUsageToActivity(usage, undefined, latestTimerId())
 
             setPhase('createSections')
             nextPhase();
@@ -288,8 +300,8 @@ function makeRequest(payload) {
             
             $('.current-section').text(`Working on section 1/${sectionTitles.length}`)
 
+            addTokenUsageToActivity(usage, undefined, latestTimerId())
             newActivity('Planned an outline');
-            addTokenUsageToActivity(usage)
             beginSearches();
             // setPhase('createRequirements')
             // nextPhase()
@@ -315,8 +327,11 @@ function makeRequest(payload) {
   }
   
 
+function newTimerId() {
+    return $('.activity-header').length + 1;
+}  
 
-function newActivity(activity, url, is_error, is_understanding) {
+function newActivity(activity, url, is_error, add_timer) {
     if (!url) {
         url = '';
     }
@@ -335,12 +350,14 @@ function newActivity(activity, url, is_error, is_understanding) {
     }
     $('.activity').prepend($newActivityElm)
 
-    if (is_understanding) {
+    if (add_timer) {
+
+        const timerId = newTimerId();
         let secondsElapsed = 0;
         const $tokenCount = $newActivityElm.find('.token-count');
     
-        $tokenCount.text(`Elapsed time: 0.0s`); // Initialize with 0.0s
-        activityTimers[url] = setInterval(() => {
+        $tokenCount.text(`Elapsed time: 0.0s`).attr('data-timer-id', timerId);
+        activityTimers[timerId] = setInterval(() => {
             secondsElapsed += 0.1; // Increment by 0.1 seconds
             $tokenCount.text(`${secondsElapsed.toFixed(1)}s`); // Show one decimal place
         }, 100); // Update every 100 milliseconds
@@ -348,13 +365,12 @@ function newActivity(activity, url, is_error, is_understanding) {
    
 }
 
-function stopActivityTimer(url) {
-    const timer = activityTimers[url];
+function stopActivityTimer(timerId) {
+    const timer = activityTimers[timerId];
     if (timer) {
-        window.clearInterval(timer); // Use window.clearInterval to be explicit
-        delete activityTimers[url];
+        window.clearInterval(timer);
+        delete activityTimers[timerId];
     }
-    $('.token-count[data-activity-url="' + url + '"]').text('');
 }
 
 function newModalUserMessage(message) {

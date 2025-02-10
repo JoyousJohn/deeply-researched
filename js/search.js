@@ -42,6 +42,8 @@ async function beginSearches() {
     for (const section of plan) {
         count++;
 
+        if (count !== 1) { newActivity("Continuing to next section"); }
+
         newActivity('Finding information for: ' + section.section_title)
         $('.current-section').text(`Working on section ${count}/${plan.length}`)
 
@@ -125,7 +127,7 @@ async function beginSearches() {
         })
 
         newActivity(`Source text: ${Object.keys(sourceTexts).length.toLocaleString()} chars/${JSON.stringify(sourceTexts).split(' ').length.toLocaleString()} words`)
-        newActivity("Drafting the section")
+        newActivity("Drafting the section", undefined, undefined, true)
 
         await analyzeSearch(JSON.stringify(sourceTexts), section);
     }
@@ -164,7 +166,7 @@ async function beginSearches() {
 
 async function checkIfSourceFulfillsDescription(candidateSources, requiredDescription) {
     
-    newActivity('Confirming source data')
+    newActivity('Confirming source data', undefined, undefined, true)
     
     // Use only candidateSources' descriptions (i.e. the new sources) for the check
     const candidateSourceDescriptions = Object.values(candidateSources)
@@ -196,9 +198,10 @@ async function checkIfSourceFulfillsDescription(candidateSources, requiredDescri
 
     // console.log(response);
 
+    addTokenUsageToActivity(data.usage, undefined, latestTimerId())
+
     if (response.fulfills === true) {
         newActivity("Fulfilled section requirements");
-        addTokenUsageToActivity(data.usage)
         return true;
     } else {
 
@@ -208,7 +211,6 @@ async function checkIfSourceFulfillsDescription(candidateSources, requiredDescri
         }
 
         newActivity(`Missing information: ${response.missing_information}`);
-        addTokenUsageToActivity(data.usage)
         newActivity(`Searching for: "${response.search_term}"`);
 
         // Track the search term so it is not reused in subsequent iterations
@@ -255,7 +257,7 @@ async function checkIfSourceFulfillsDescription(candidateSources, requiredDescri
 
 async function getRelevantAndNeededSources(sectionDescription) {
 
-    newActivity('Examining current context')
+    newActivity('Examining current context', undefined, undefined, true)
 
     let sourceDescriptions = {}
     for (const [key, value] of Object.entries(sources)) {
@@ -271,11 +273,11 @@ async function getRelevantAndNeededSources(sectionDescription) {
     ];
 
     const data = await sendRequestToDecoder(messages_payload);
+    addTokenUsageToActivity(data.usage, undefined, latestTimerId())
     let content;
     try {
         content = data.choices[0].message.content;
         content = JSON.parse(content);
-        addTokenUsageToActivity(data.usage)
     } catch (e) {
         console.error("Error parsing decoder response:", e);
         console.log("Response content:", content);
@@ -412,7 +414,9 @@ async function analyzeSearch(searchData, section) {
     addToModalMessage(section_title)
     addToModalMessage('\n\n ' + content);
     // newActivity('Drafted the section');
-    addTokenUsageToActivity(usage);
+    addTokenUsageToActivity(usage, undefined, latestTimerId());
+    // add logic to confirm and refine the draft here!
+
 }
 
 
@@ -468,7 +472,8 @@ async function categorizeSource(index, source) {
         handleError(source.url, url);
         return; // Exit the function if data is undefined
     }
-    addTokenUsageToActivity(data.usage, source.url)
+    const timerId = $(`.token-count[data-activity-url="${source.url}"]`).attr('data-timer-id');
+    addTokenUsageToActivity(data.usage, source.url, timerId)
     let content;
     try {
         content = JSON.parse(data.choices[0].message.content);
