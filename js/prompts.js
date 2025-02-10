@@ -237,6 +237,7 @@ Important formatting rules:
 - The description should be one continuous string without line breaks
 - Do not wrap your response in a json code block
 - Do not wrap your response with backticks
+- Do not return any notes or comments
 
 Important: Do *NOT* add any comments.
 
@@ -254,6 +255,7 @@ Before finalizing response:
 - Ensure sources provide comprehensive coverage of key aspects
 - Confirm selection represents the most important perspectives
 - Check that the source_ids list is properly prioritized
+- Ensure the source_ids array is no more than 20 elements long
 `
 
 

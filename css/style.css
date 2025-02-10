@@ -142,6 +142,7 @@ body {
     height: 100%;
     position: fixed;
     overflow-y: scroll;
+    z-index: 2;
 }
 
 .settings-x {
@@ -664,6 +665,15 @@ textarea::-webkit-scrollbar {
     max-width: 40vw;
     width: max-content;
 }
+
+.current-search-progress {
+    color: rgb(127, 127, 255);
+    font-size: 1.3rem;
+}
+
+/* :where(.current-search) .current-search-progress:nth-last-child(1 of .current-search-progress) {
+    color: red;
+} */
 
 .current-search-desc {
     font-size: 1.5rem !important;

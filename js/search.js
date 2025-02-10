@@ -204,11 +204,19 @@ async function checkIfSourceFulfillsDescription(candidateSources, requiredDescri
     addTokenUsageToActivity(data.usage, undefined, latestTimerId());
 
     // If the current sources fulfill the requirement or maximum branch depth is reached
-    if (response.fulfills === true || branchHistory.length + 1 === maxBranches) {
-        console.log("Fulfilled");
+    if (response.fulfills === true || branchHistory.length === maxBranches) {
+        if (response.fulfills === true) {
+            console.log("Fulfilled by context");
+        } else {
+            // console.log("Fulfilled by length timeout")
+        }
+
+        // console.log("Current history length before remove: ", branchHistory.length)
+
         newActivity("Fulfilled section requirements");
         if (branchHistory.length !== 0) {
             $('.current-search-nested').last().remove();
+            const nestedElements = $('.current-search-nested');
         }
         return true;
     } else {
@@ -217,9 +225,13 @@ async function checkIfSourceFulfillsDescription(candidateSources, requiredDescri
         console.table(info);
 
         let allFulfilled = true;
+
+        let count = 0;
         
         // Process each missing topic rather than exiting on the first one
         for (let missing_topic of info) {
+
+            count++;
             
             // Log prior missing information and search terms from this branch, if any.
 
@@ -230,7 +242,6 @@ async function checkIfSourceFulfillsDescription(candidateSources, requiredDescri
                 });
             }
             
-            // // Log the current branch depth (branchHistory length + 1)
             // console.log("=== New Search Iteration ===");
             // console.log("Current branch depth:", branchHistory.length + 1);
             // console.log("Missing Information:", missing_topic.missing_information);
@@ -240,18 +251,23 @@ async function checkIfSourceFulfillsDescription(candidateSources, requiredDescri
             newActivity(`Missing information: ${missing_topic.missing_information}`);
             newActivity(`Searching for: "${missing_topic.search_term}"`);
 
+            // console.log("Branch history length: ", branchHistory.length)
+
             // Optionally update UI reporting on the current missing info
             if (branchHistory.length !== 0) {
                 const $newProgressElm = $(`
                     <div class="current-search-nested">
+                        <div class="current-search-progress">Sourcing ${count}/${info.length}</div>
                         <div class="current-search-desc">Researching ${missing_topic.missing_information.charAt(0).toLowerCase() + missing_topic.missing_information.slice(1)}...</div>
                         <div class="current-search-keywords">Searching "${missing_topic.search_term}"</div>
                     </div>
                 `);
                 $('.current-search-keywords').last().html($newProgressElm);
             } else {
+                $('.current-search-progress').text(`Sourcing ${count}/${info.length}`)
                 $('.current-search-desc').text(`Researching ${missing_topic.missing_information.charAt(0).toLowerCase() + missing_topic.missing_information.slice(1)}...`);
                 $('.current-search-keywords').text(`Searching "${missing_topic.search_term}"`);
+            
             }
 
             // Merge parent's tried search terms with the current missing topic's search term
@@ -303,6 +319,7 @@ async function checkIfSourceFulfillsDescription(candidateSources, requiredDescri
             }
         }
         
+        $('.current-search-nested').last().remove();
         return allFulfilled;
     }
 }
