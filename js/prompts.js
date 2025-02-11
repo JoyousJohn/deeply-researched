@@ -59,83 +59,125 @@ Example format:
 
 Do not include any text before or after the JSON object.`
 
+const refactorPrompt = `You are a research query analyzer. Your task is to analyze a user's initial query, follow-up questions, and their answers, then provide three key pieces of information:
+1. A precise, detailed description of the information being sought
+2. Specific formatting requirements for the response mentioned in or derived from the input information
+3. Required content elements that must be included in the response
 
-const refactorPrompt = `You are a research query analyzer. Your task is to take a user's initial query, the follow-up questions that were asked, and their answers, then transform this information into a precise, detailed description of exactly what information they are seeking. Follow these guidelines:
+Your response must be JSON in this format:
+{
+    "query": <string describing the core information needs>,
+    "formatting_requirements": <string containing specific formatting requirements>,
+    "content_requirements": <string listing mandatory content elements>
+}
 
-You will respond with JSON in this format: {"description": <your generated description>}
+Ensure your JSON is valid and well-constructed.
 
-- Focus solely on identifying the core information need - do not provide any actual information or answers
-- Maintain absolute specificity - identify exact concepts, relationships, or data points the user is seeking
-- Preserve all technical terminology used in the original query and follow-up answers
-- Include any implicit information needs that are logically necessary to fully answer the query
-- Specify any temporal, geographical, or contextual constraints implied by the query or follow-up answers
-- Identify the required depth and breadth of information needed
-- Note any specific formats, metrics, or types of evidence required
-- Incorporate all relevant context from the follow-up Q&A to refine and specify the search parameters
-- Include and specify any franchises, individuals, companies, etc. that are relevant and required in the task.
+For the query analysis:
+- Focus solely on identifying the core information need
+- Maintain absolute specificity - identify exact concepts, relationships, or data points
+- Preserve all technical terminology from the original query and follow-up answers
+- Include implicit information needs that are logically necessary
+- Specify temporal, geographical, or contextual constraints
+- Incorporate all relevant context from follow-up Q&A
+- Include any franchises, individuals, companies, etc. that are relevant
+- Begin with "This query seeks information about"
+- Do NOT include any formatting requirements in this section
 
-Important: It is possible that the follow-up answers do not answer the questions or are entirely unrelated. If parts of the follow-up answers do not relate to the initial query or questions, ignore these parts.
+For the formatting requirements, specify (if mentioned):
+- Required depth and breadth of information
+- Any specific formats (tables, lists, diagrams, etc.)
+- Required metrics or measurements
+- Types of evidence or sources needed
+- Structure of the response (paragraphs, sections, etc.)
+- Level of technical detail required
+- Any specific citation formats
+- Requirements for examples or illustrations
+- Whether comparisons or analyses are needed
+- Any specific organizational requirements
+- Do not specify a citation format unless otherwise mentioned
+
+For the required content elements:
+- List all specifically requested topics that must be covered
+- Include any mandatory examples, case studies, or scenarios
+- Specify required data points or metrics that must be included
+- List any specific theories, methods, or approaches that must be discussed
+- Include any historical context or background that must be provided
+- Specify any required definitions or explanations
+- List any mandatory comparisons or contrasts
+- Include any required perspectives or viewpoints
+- Specify any necessary calculations or analyses
+- List any required recommendations or solutions
+
+Note: If parts of the follow-up answers do not relate to the initial query or questions, ignore these parts.
+
+*Important* Notes: 
+- Formatting requirements must deal solely with textual formatting and not mention required content
+- Required content should be specific elements that must appear in the response, not formatting instructions
+- The query should focus on the core information need without listing specific required elements
 
 Input Format:
 USER_QUERY: [Initial user query text]
 QUESTIONS_ASKED: [Array of follow-up questions that were asked]
 USER_ANSWERS: [Array of user's responses to those questions]
+`
+const createSections = `You are tasked with creating a comprehensive document structure. You will be provided with three inputs: 1) a detailed query describing the core information needs, 2) specific formatting requirements, and 3) required content elements. Your task is to create detailed sections that address these requirements while adhering to the specified formatting.
 
-Provide your response in a single, detailed paragraph that begins with "This query seeks information about" and describes exactly what information needs to be found to fully answer the user's question. Focus only on what needs to be found, not on providing any actual answers or external information.
+You are to focus on incorporating all three inputs into an organized structure. Do not introduce information beyond what was specified in these inputs. Focus solely on organizing content that fulfills the stated needs.
 
-Now analyze the following:`
-
-
-const createSections = `You are tasked with creating a comprehensive document structure. You will be provided with a description of needed content. Your *primary* goal is to create detailed sections that *directly address* the specific requests and information needs. Do *not* introduce information beyond what was requested. Focus solely on organizing content that fulfills the stated needs.
-
-You are to focus on solely addressing the requirements in the description. Do not summarize, bring in external knowledge, or introduce aspects that do not follow the description.
-
-Your task is to create detailed sections for a professional document that will fully address the *stated* requirements. Each section should be clearly defined with an extremely detailed explanation of what specific information, data, analysis, and writing *must* be included to fulfill the requests. These sections *must* have a clear purpose tied directly to the prompt and its specific requests.
+Your task is to create detailed sections for a professional document that will fully address all requirements from the three inputs. Each section should be clearly defined with an extremely detailed explanation of what specific information, data, analysis, and writing must be included to fulfill the requests. These sections must have a clear purpose tied directly to the three inputs.
 
 Guidelines:
 
-* Include *only* the sections necessary to comprehensively address the *explicit* goals. Do not add sections based on assumptions or general knowledge of the topic. If the provided query contains very specific goals, your sections should target these goals. If the query is very short, focus on the minimum amount of required sections to sufficiently complete the task.
-* Ensure each section has a clear purpose *directly related* to the requests and adds unique value in fulfilling those requests.
-* Focus *exclusively* on the explicit requirements and information provided. Do not infer or add implicit needs.
+* Include only the sections necessary to comprehensively address the explicit goals from all three inputs. Do not add sections based on assumptions or general knowledge of the topic.
+* Ensure each section has a clear purpose directly related to the query, follows the formatting requirements, and incorporates the required content elements.
+* Focus exclusively on organizing and structuring the information specified in the three inputs. Do not infer or add implicit needs.
 * The description for each section should comprehensively detail:
-    * *Exactly* what information has been requested to be included. Do not add additional points.
-    * Specific data points, metrics, and analysis *that were requested*. Do not add additional metrics.
-    * How the information should be presented and explained *as specified*.
-    * Key topics that *have been explicitly stated must* be covered.
-    * Important context or background *that was provided*.
+    * Exactly what information from the query should be included
+    * How to implement the specified formatting requirements
+    * How to incorporate all required content elements
+    * How the information should be presented and structured
+    * Key topics that must be covered based on all inputs
     * Keep descriptions of the content covered within each section unique and exclusive of the other sections.
 * For search keywords:
-    * Include specific terms *directly related* to the requests. Do not add general topic keywords.
-    * Add specialized terminology *only if provided in the requirements*.
-    * Include metrics and data points *that were requested*.
-    * Consider different phrasings of the same concept *used in the requirements*.
-    * Add geographic or temporal terms *if specified*.
+    * Include specific terms from all three inputs
+    * Add specialized terminology from the requirements
+    * Include metrics and data points specified
+    * Consider different phrasings of key concepts from all inputs
+    * Add geographic or temporal terms if specified
 
 The sections must not overlap in purpose. Each description should not cover information already mentioned in other sections.
 
-Return a JSON array where each object represents a document section. The response *must*:
+Return a JSON array where each object represents a document section. The response must:
 
-* Contain *ONLY* valid JSON with no additional text or formatting. Do not surround the JSON in backticks. Do not add newline characters. Do not format the JSON as a code block. Return the JSON in raw-text.
-* Include *exactly* these three fields for each section:
+* Contain ONLY valid JSON with no additional text or formatting. Do not surround the JSON in backticks. Do not add newline characters. Do not format the JSON as a code block. Return the JSON in raw-text.
+* Include exactly these three fields for each section:
     * "section_title": String containing a clear, professional title for the section.
-    * "description": String containing an extremely detailed explanation of *only* the information, data, analysis, and writing that has been *specifically requested* for this section. Do *not* include any newline characters in the description.
-    * "search_keywords": Array of strings containing specific search terms *directly related to the requests* that would help find sources for this section's required information.
+    * "description": String containing an extremely detailed explanation of how to implement all requirements from the three inputs for this section. Do not include any newline characters in the description. The description should start with "A... "
+    * "search_keywords": Array of strings containing specific search terms from all three inputs that would help find sources for this section's required information.
+
+Input Format:
+QUERY: [String describing the core information needs]
+FORMATTING_REQUIREMENTS: [String containing specific formatting requirements]
+CONTENT_REQUIREMENTS: [String listing mandatory content elements]
 
 Example format: (no backticks)
 
 {"sections": [
-    {
-        "section_title": "string: professional title 1 of the section",
-        "description": "string: comprehensive explanation of all required content, information, data, analysis and writing needed for this section *based solely on the stated requests*",
-        "search_keywords": ["string: specific search term 1 *from the request*", "string: specific search term 2 *from the request*"]
-    },
-    {
-        "section_title": "string: professional title 2 of the section",
-        "description": "string: comprehensive explanation of all required content, information, data, analysis and writing needed for this section *based solely on the stated requests*",
-        "search_keywords": ["string: specific search term 1 *from the request*", "string: specific search term 2 *from the request*"]
-    }
+        {
+            "section_title": "string: professional title 1 of the section",
+            "description": "string: comprehensive explanation of how to implement all requirements from the three inputs for this section",
+            "search_keywords": ["string: specific search term 1 from the inputs", "string: specific search term 2 from the inputs"]
+        },
+        {
+            "section_title": "string: professional title 2 of the section",
+            "description": "string: comprehensive explanation of how to implement all requirements from the three inputs for this section",
+            "search_keywords": ["string: specific search term 1 from the inputs", "string: specific search term 2 from the inputs"]
+        }
     ]
-}`
+}
+    
+`
 
 const requiredInfoPrompt = `You will be provided with a document layout containing sections and detailed descriptions outlining their goals and contents. Analyze these sections and generate a list of required information/sources needed to complete the document.
 
@@ -147,6 +189,7 @@ Requirements:
 - Each dictionary should be self-contained and understandable independently
 - Search phrases should include key technical terms, organizations, time frames, and source types (e.g., reports, studies, datasets)
 - Prioritize actionable search terms that would effectively locate authoritative sources
+- Break down your response into the minimum amount of topics to fully complete the task and find all information.
 
 Return response as a JSON array of dictionaries with "topic" and "search_phrase" keys.
 
@@ -257,6 +300,50 @@ Before finalizing response:
 - Check that the source_ids list is properly prioritized
 - Ensure the source_ids array is no more than 20 elements long
 `
+
+const selectOnlySourcesPrompt = `Task: Analyze a research section description and identify the most relevant information sources (maximum 20) from the provided dictionary, prioritizing the most critical and directly relevant sources.
+
+Source Selection Guidelines:
+- Select up to 20 of the most relevant sources, prioritizing those that:
+  * Directly address the core topic
+  * Provide substantial coverage of key aspects
+  * Contain unique or critical information
+  * Offer primary research or foundational concepts
+  * Present significant empirical evidence
+  * Include essential methodological details
+  * Cover major theoretical frameworks
+  * Provide crucial context or background
+  * Represent seminal work in the field
+  * Offer authoritative perspectives
+
+Evaluation Process:
+1. First pass: Identify direct matches and primary sources
+2. Second pass: Evaluate quality and relevance of each source
+3. Third pass: Prioritize sources based on importance and uniqueness
+4. Final pass: Review and confirm selection of most critical sources
+
+Requirements:
+- Return a JSON object containing only the source_ids key
+- The source_ids value should be an array of up to 20 numerical IDs
+- IDs should be ordered by relevance/importance
+
+Important formatting rules:
+- Do not return any text outside of the JSON object
+- Do not format or prettify your response
+- Return your JSON object response in raw-text
+- Do not wrap your response in a json code block
+- Do not wrap your response with backticks
+- Do not return any notes or comments
+
+Example response:
+{"source_ids":[1,2,3,4,7,9]}
+
+Before finalizing response:
+- Verify that the most critical sources are included
+- Ensure sources provide comprehensive coverage of key aspects
+- Confirm selection represents the most important perspectives
+- Check that the source_ids list is properly prioritized
+- Ensure the source_ids array is no more than 20 elements long`
 
 
 const checkFulfillsDescriptionPrompt = `Evaluate if source descriptions fulfill a required information description. Consider that details can be reasonably inferred or expanded from context.

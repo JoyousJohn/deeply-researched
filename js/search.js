@@ -45,7 +45,7 @@ async function beginSearches() {
         if (count !== 1) { newActivity("Continuing to next section"); }
 
         newActivity('Finding information for: ' + section.section_title)
-        $('.current-section').text(`Working on section ${count}/${plan.length}`)
+        $('.current-section').html(`Working on section ${count}/${plan.length}: <span style="color: rgb(168, 168, 168)">${section.section_title}</span>`)
 
         $('.current-search-desc').text(`Researching ${section.section_title}`)
         $('.current-search-keywords').text(`Searching ${section.search_keywords}...`)
@@ -73,7 +73,7 @@ async function beginSearches() {
 
         }
 
-        let relevantAndNeededSources = await getRelevantAndNeededSources(section.description)
+        let relevantAndNeededSources = await getRelevantAndNeededSources(section.description, false)
 
         // console.log(relevantAndNeededSources)
 
@@ -122,19 +122,19 @@ async function beginSearches() {
         addToModalMessage(`\n\nI'm choosing sources relevant to these requirements: ${section.description}`)
 
         // add that this only runs if the initial relevantAndNeededSources returned it has enough and didn't need to run. oteherwise checking if we have the relevant sources happens twice  on the same source ocuments data info.
-        relevantAndNeededSources = await getRelevantAndNeededSources(section.description)
+        relevantAndNeededSources = await getRelevantAndNeededSources(section.description, true)
 
         const required_source_ids = relevantAndNeededSources.source_ids.slice(0, 20) 
 
         newActivity(`Using ${required_source_ids.length} sources`)
 
-        let sourceTexts = {};
+        let sourceTexts = '';
         required_source_ids.forEach(id => {
-            // sourceTexts += sources[id].text + ' '
-            sourceTexts[id] = sources[id].text
+            sourceTexts += sources[id].text + ' '
+            // sourceTexts[id] = sources[id].text
         })
 
-        newActivity(`Source text: ${Object.keys(sourceTexts).length.toLocaleString()} chars/${JSON.stringify(sourceTexts).split(' ').length.toLocaleString()} words`)
+        newActivity(`Source text: ${(sourceTexts).length.toLocaleString()} chars/${JSON.stringify(sourceTexts).split(' ').length.toLocaleString()} words`)
         newActivity("Drafting the section", undefined, undefined, true)
 
         await analyzeSearch(JSON.stringify(sourceTexts), section);
@@ -260,14 +260,14 @@ async function checkIfSourceFulfillsDescription(candidateSources, requiredDescri
                 const $newProgressElm = $(`
                     <div class="current-search-nested">
                         <div class="current-search-progress">Sourcing ${count}/${info.length}</div>
-                        <div class="current-search-desc">Researching ${missing_topic.missing_information.charAt(0).toLowerCase() + missing_topic.missing_information.slice(1)}...</div>
+                        <div class="current-search-desc">Researching ${missing_topic.missing_information.charAt(0).toLowerCase() + missing_topic.missing_information.slice(1)}</div>
                         <div class="current-search-keywords">Searching "${missing_topic.search_term}"</div>
                     </div>
                 `);
                 $('.current-search-keywords').last().html($newProgressElm);
             } else {
                 $('.current-search-progress').text(`Sourcing ${count}/${info.length}`)
-                $('.current-search-desc').text(`Researching ${missing_topic.missing_information.charAt(0).toLowerCase() + missing_topic.missing_information.slice(1)}...`);
+                $('.current-search-desc').text(`Researching ${missing_topic.missing_information.charAt(0).toLowerCase() + missing_topic.missing_information.slice(1)}`);
                 $('.current-search-keywords').text(`Searching "${missing_topic.search_term}"`);
             
             }
@@ -328,7 +328,7 @@ async function checkIfSourceFulfillsDescription(candidateSources, requiredDescri
 
 
 
-async function getRelevantAndNeededSources(sectionDescription) {
+async function getRelevantAndNeededSources(sectionDescription, sources_only) {
 
     newActivity('Examining current context', undefined, undefined, true)
 
@@ -337,8 +337,15 @@ async function getRelevantAndNeededSources(sectionDescription) {
         sourceDescriptions[key] = value.description;
     }
 
+    let prompt;
+    if (sources_only) {
+        prompt = selectOnlySourcesPrompt;
+    } else {
+        prompt = selectSourcesPrompt
+    }
+
     const messages_payload = [
-        { role: "system", content: selectSourcesPrompt },
+        { role: "system", content: prompt },
         { role: "user", content: `
             description: ${sectionDescription}
             sources: ${JSON.stringify(sourceDescriptions)}

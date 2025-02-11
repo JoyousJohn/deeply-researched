@@ -70,8 +70,13 @@ $('.settings').click(function() {
 })
 
 function searchFocus() {
-    $('textarea').focus().attr('placeholder', 'Research a topic');
-    $('.search-wrapper').css('background-color', 'rgb(33, 78, 147)').css('width', '57%')
+    const $textarea = $('textarea');
+    $textarea.focus();
+    // Only apply CSS changes if focus was successful
+    if (document.activeElement === $textarea[0]) {
+        $textarea.attr('placeholder', 'Research a topic');
+        $('.search-wrapper').css('background-color', 'rgb(33, 78, 147)').css('width', '57%');
+    }
 }
 
 $('textarea').on('keydown', function(event) {

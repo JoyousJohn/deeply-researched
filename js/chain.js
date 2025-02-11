@@ -6,6 +6,8 @@ $('.search-arrow').click(function() {
 let phase;
 let researchRequest;
 let refinedRequest;
+let refinedFormattingRequirements;
+let refinedContentRequirements;
 let input;
 
 let questions;
@@ -79,7 +81,8 @@ function nextPhase() {
                 USER_QUERY: ${researchRequest}
                 QUESTIONS_ASKED: ${questions}
                 USER_ANSWERS: ${input}
-            `}
+            `},
+            {role: "assistant", content: "{"}
         ]
 
         setPhase('refineTaskWithAnsweredQuestions')
@@ -90,7 +93,11 @@ function nextPhase() {
     } else if (phase === 'createSections') {
         payload['messages'] = [
             {role: "system", content: createSections},
-            {role: "user", content: `Research query: ${refinedRequest}`}
+            {role: "user", content: `
+                QUERY: ${refinedRequest}
+                FORMATTING_REQUIREMENTS: ${refinedFormattingRequirements}
+                CONTENT_REQUIREMENTS: ${refinedContentRequirements}`
+            }
         ]
 
         newActivity('Creating a search plan', undefined, undefined, true);
@@ -228,7 +235,16 @@ function makeRequest(payload) {
 
         let context;
         try {
-            context = JSON.parse(fullResponse.choices[0].message.content.replace('```json', '').replace('```', ''));
+            console.log(fullResponse.choices[0].message.content)
+            if (fullResponse.choices[0].message.content.trim().charAt(0) !== '{') {
+                context = '{' + fullResponse.choices[0].message.content;
+                console.log('adding bracket, new json:')
+                console.log(context)
+                context = JSON.parse(context);
+            } else {
+                context = JSON.parse(fullResponse.choices[0].message.content.replace('```json', '').replace('```', ''));
+            }
+            
         } catch (e) {
             console.error("Error parsing JSON response:", e);
             console.log("Full response JSON:", fullResponse);
@@ -277,9 +293,17 @@ function makeRequest(payload) {
 
         } else if (phase === 'refineTaskWithAnsweredQuestions') {
 
-            refinedRequest = context.description;
+            refinedRequest = context.query;
+            refinedFormattingRequirements = context.formatting_requirements;
+            refinedContentRequirements = context.content_requirements
+
             newModelMessageElm(true);
-            addToModalMessage('I have generated a research query: ' + refinedRequest)
+            addToModalMessage('I refined the query: ' + refinedRequest)
+            addToModalMessage('\n\nI will follow these formatting requirements: ' + refinedFormattingRequirements)
+            addToModalMessage('\n\nI will include these content requirements: ' + refinedContentRequirements)
+
+            addQueryToOutline(context)
+
             addTokenUsageToActivity(usage, undefined, latestTimerId())
 
             setPhase('createSections')
@@ -291,12 +315,17 @@ function makeRequest(payload) {
             plan = context.sections;
             const sectionTitles = plan.map(section => section.section_title);
             // console.log(sectionTitles)
-            const sectionTitlesList = sectionTitles.join(', ').replace(/, ([^,]*)$/, ', and $1');
+            // const sectionTitlesList = sectionTitles.join(', ').replace(/, ([^,]*)$/, ', and $1');
             
-            addToModalMessage(
-                `\n\nI have formulated a layout for your report, which will contain the following ${plan.length} sections: ${sectionTitlesList}. \n\n` +
-                `I will begin by gathering sources and content required for the ${sectionTitles[0]} section by following this guide: ${plan[0].description}`
-            );
+            addToModalMessage(`\n\nI have formulated a layout for your report, which will contain the following ${plan.length} sections:.`);
+
+            addToModalMessage('<ul>')
+            sectionTitles.forEach(sectionTitle => {
+                addToModalMessage(`<li>${sectionTitle}</li>`)
+            })
+            addToModalMessage('<ul>')
+
+            addToModalMessage(`\n\nI will begin by gathering sources and content required for the ${sectionTitles[0]} section by following this guide: ${plan[0].description}`)
             
             $('.current-section').text(`Working on section 1/${sectionTitles.length}`)
 
