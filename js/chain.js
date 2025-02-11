@@ -16,10 +16,9 @@ let plan;
 let requirements = {};
 let remainingRequirements = {};
 
-let timer; // Variable to hold the timer interval
-let elapsedTime = 0; // Variable to track elapsed time
+let timer; 
+let elapsedTime = 0; 
 
-// Global object to hold timers
 const activityTimers = {};
 
 setPhase('waitingForInput')
@@ -201,7 +200,7 @@ function addTokenUsageToActivity(usage, url, timerId) {
 
     }
 
-    $('.overall-tokens').html(`${overallTokens['input'].toLocaleString()} / ${overallTokens['output'].toLocaleString()} / ${(overallTokens['input'] + overallTokens['output']).toLocaleString()} total tokens <br>${cost} ${overallTokens['requests']} request${overallTokens['requests'] !== 1 ? 's' : ''} / ${rpm} RPM${workingContext}${memoryMapContext}`)
+    $('.overall-tokens').html(`${overallTokens['input'].toLocaleString()} / ${overallTokens['output'].toLocaleString()} / ${(overallTokens['input'] + overallTokens['output']).toLocaleString()} total tokens <br>${cost} ${overallTokens['requests']} request${overallTokens['requests'] !== 1 ? 's' : ''} / <span class="rpm">${rpm}</span> RPM${workingContext}${memoryMapContext}`)
 
 }
 
@@ -236,6 +235,11 @@ function makeRequest(payload) {
         let context;
         try {
             console.log(fullResponse.choices[0].message.content)
+
+            if (phase === 'createSections' || phase === 'refineTaskWithAnsweredQuestions') {
+                fullResponse.choices[0].message.content = fullResponse.choices[0].message.content.replace(/\s+/g, ' ')
+            }
+
             if (fullResponse.choices[0].message.content.trim().charAt(0) !== '{') {
                 context = '{' + fullResponse.choices[0].message.content;
                 console.log('adding bracket, new json:')
@@ -290,6 +294,16 @@ function makeRequest(payload) {
                 addToModalMessage("I apologize, but I cannot proceed with this request. " + context.explanation);
                 enableBar();
             }
+
+            // start the interval here
+            setInterval(() => {
+                let minutes = (elapsedTime / 60);
+                let rpm = (overallTokens['requests'] / minutes).toFixed(1);
+                if (rpm > overallTokens['requests']) {
+                    rpm = overallTokens['requests'];
+                }
+                $('.rpm').text(rpm)
+            }, 3000);
 
         } else if (phase === 'refineTaskWithAnsweredQuestions') {
 
@@ -430,6 +444,7 @@ function startTimer() {
         elapsedTime++;
         updateRuntimeDisplay();
     }, 1000);
+
     setTimeout(() => {
         $('.progress-bar').fadeIn();   
     }, 1000);

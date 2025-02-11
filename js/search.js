@@ -33,6 +33,18 @@ function appendURLS(links) {
     });
 }
 
+
+
+function replaceSourceWithLink(text) {
+    return text.replace(/\[SRC_(\d+)\]/g, (match, id) => {
+        const source = sources[id];
+        return source ? `<a class="text-source" target="_blank" href="${source.url}">${id+1}</a>` : match;
+    });
+}
+
+
+
+
 async function beginSearches() {
     setPhase('findingLinks');
 
@@ -128,13 +140,22 @@ async function beginSearches() {
 
         newActivity(`Using ${required_source_ids.length} sources`)
 
-        let sourceTexts = '';
-        required_source_ids.forEach(id => {
-            sourceTexts += sources[id].text + ' '
-            // sourceTexts[id] = sources[id].text
-        })
+        console.log("required_source_ids: ", required_source_ids)
 
-        newActivity(`Source text: ${(sourceTexts).length.toLocaleString()} chars/${JSON.stringify(sourceTexts).split(' ').length.toLocaleString()} words`)
+        let sourceTexts = [];
+        required_source_ids.forEach(id => {
+            // sourceTexts += sources[id].text + ' '
+            sourceTexts.push({
+                'sourceId': `SRC_${id}`,
+                'content': sources[id].text
+            })
+        });
+
+        x = sourceTexts;
+
+        console.table(sourceTexts)
+
+        newActivity(`Source text: ${JSON.stringify(sourceTexts).length.toLocaleString()} chars/${JSON.stringify(sourceTexts).split(' ').length.toLocaleString()} words`)
         newActivity("Drafting the section", undefined, undefined, true)
 
         await analyzeSearch(JSON.stringify(sourceTexts), section);
@@ -152,7 +173,7 @@ async function beginSearches() {
 
     finalContent.forEach(section => {
         addToModalMessage('\n\n\n\n<span class="text-2rem">' + section.section_title + '</span>')
-        addToModalMessage('\n\n' + section.section_content.trim())
+        addToModalMessage('\n\n' + replaceSourceWithLink(section.section_content))
 
         usage.in += section.tokens.in
         usage.out += section.tokens.out
@@ -207,15 +228,16 @@ async function checkIfSourceFulfillsDescription(candidateSources, requiredDescri
 
     // If the current sources fulfill the requirement or maximum branch depth is reached
     if (response.fulfills === true || branchHistory.length === maxBranches) {
-        if (response.fulfills === true) {
-            console.log("Fulfilled by context");
+        if (branchHistory.length === maxBranches) {
+            // console.log("Fulfilled by context");
+            newActivity("Fulfilled section requirements (max branches hit)");
         } else {
             // console.log("Fulfilled by length timeout")
+            newActivity("Fulfilled section requirements by context");
         }
 
         // console.log("Current history length before remove: ", branchHistory.length)
 
-        newActivity("Fulfilled section requirements");
         if (branchHistory.length !== 0) {
             $('.current-search-nested').last().remove();
             const nestedElements = $('.current-search-nested');
@@ -464,7 +486,8 @@ async function analyzeSearch(searchData, section) {
         { role: "user", content: `
             The general subject of this section is: ${section_title}
             The description of the section and its requirements is: ${description}
-            The entirety of the source text is: ${searchData}}
+            The source materials are defined as follows:
+            ${JSON.stringify(searchData, null, 2)}
         ` }
     ];
 

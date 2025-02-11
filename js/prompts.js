@@ -121,6 +121,7 @@ USER_QUERY: [Initial user query text]
 QUESTIONS_ASKED: [Array of follow-up questions that were asked]
 USER_ANSWERS: [Array of user's responses to those questions]
 `
+
 const createSections = `You are tasked with creating a comprehensive document structure. You will be provided with three inputs: 1) a detailed query describing the core information needs, 2) specific formatting requirements, and 3) required content elements. Your task is to create detailed sections that address these requirements while adhering to the specified formatting.
 
 You are to focus on incorporating all three inputs into an organized structure. Do not introduce information beyond what was specified in these inputs. Focus solely on organizing content that fulfills the stated needs.
@@ -433,29 +434,43 @@ If fulfills is true, return object with fulfills:true and empty info array. If f
 // `;
 
 
-const analyzeArticlesPrompt = `You will be provided the subject of a section, its description, and a string containing all of the source material. Write **only the raw content** for this specific section as part of a longer document. Your task is to **extract and analyze only the information directly relevant to the section's description**. Do **not** summarize or cover all information from the source text. Follow these guidelines:
+const analyzeArticlesPrompt = `You will be provided the subject of a section, its description, and an array of source materials. Each source has a sourceId and content field. Write **only the raw content** for this specific section as part of a longer document. Your task is to **extract and analyze only the information directly relevant to the section's description** across all provided sources. Do **not** summarize or cover all information from the source texts. Follow these guidelines:
 
 1. **Strictly adhere to the section's description**—only include information that directly addresses the description's requirements. Ignore anything irrelevant.
-2. **Use specific evidence** (examples, quotes, data) from the provided sources to support your points. Do not include unsupported claims or generalizations. 
-3. **Analyze patterns, relationships, and themes** relevant to the section's focus. Avoid broad summaries of the source material.
-4. **Explain complex ideas clearly** and incorporate multiple perspectives where applicable.
-5. **Prioritize depth over breadth**—focus on key insights and their significance, not on covering everything in the source text.
+2. **Use specific evidence** (examples, quotes, data) from the provided sources to support your points. Every piece of information must be cited with its source ID in square brackets [ID] immediately after the referenced information.
+3. **Analyze patterns, relationships, and themes** relevant to the section's focus across multiple sources. Look for connections and contradictions between different sources.
+4. **Explain complex ideas clearly** and incorporate multiple perspectives where applicable, especially when different sources offer varying viewpoints.
+5. **Prioritize depth over breadth**—focus on key insights and their significance, not on covering everything in the source texts.
 
 **Strict Rules:**
-- **NO summaries of the source text.** Only extract and analyze what is directly relevant to the section's description.
+- **NO summaries of individual sources.** Only extract and analyze what is directly relevant to the section's description.
 - **NO introductions, conclusions, summaries, or transitions.** Start immediately with analysis. Do not conclude with "overall" statements.
 - **NO markdown, bullet points, or section titles.** Write in plain prose.
 - **NO filler phrases** (e.g., "This section will discuss…"). Assume the reader is already within the document.
 - **NO extraneous information.** Exclude anything not explicitly tied to the section's description.
-- **Cite specific examples/quotes** from the provided sources. Avoid unsupported claims.
+- **MANDATORY citation format:** Include source ID in square brackets [ID] immediately after any information, quote, or analysis derived from that source. When information comes from multiple sources, include all relevant IDs: [1][2].
+- **NO uncited information.** Every piece of information must be traced to its source(s).
 - **NO repetition.** Do not excessively repeat facts or texts. Rather, delve deeply into their significance with respect to the description.
-- Do not directly mention the sources by name unless otherwise directed.
+- When analyzing contradictions or complementary information across sources, focus on the substance while clearly citing each source.
+
+**Citation Examples:**
+- Single source: "The temperature increased by 2.5 degrees" [SRC_1]
+- Multiple sources agreeing: "Global emissions have risen steadily since 2010" [SRC_1][SRC_2]
+- Contrasting information: "While some regions saw decreases [SRC_1], others experienced dramatic increases [SRC_2]"
+
 
 **Output Format:**
-- Raw, continuous text that flows naturally within a larger work. 
+- Raw, continuous text that flows naturally within a larger work.
 - Break up large and long blocks of text into paragraphs separated by new lines for easier reading.
-- Directly address the description's points in detail, using **only the most relevant evidence** from the source material.`
+- Directly address the description's points in detail, using **only the most relevant evidence** from all available sources.
+- Every piece of information must be followed by its source ID(s) in square brackets.
 
+Example input format:
+{
+  1: "Text from first source...",
+  2: "Text from second source...",
+  3: "Text from third source..."
+}`
 // **After every paragraph in your response**: Include the source ID of the sources you used by wrwapping the source ID integer (from the supplied dictionary) in square brackets.
 
 

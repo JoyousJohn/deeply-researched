@@ -3,7 +3,7 @@ html {
 }
 
 body {
-    background-color: #272727;
+    background-color: #222;
     margin: 0;
 }
 
@@ -283,6 +283,20 @@ body {
     word-wrap: break-word;
     align-self: end;
     margin-left: 30%;
+}
+
+.text-source {
+    height: 2.2rem;
+    width: 2.2rem;
+    color: white;
+    text-decoration: none;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #373737;
+    color: #878787;
+    font-size: 1.3rem;
+    border-radius: 50%;
 }
 
 .body {
