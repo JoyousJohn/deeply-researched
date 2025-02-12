@@ -136,7 +136,7 @@ async function beginSearches() {
         // add that this only runs if the initial relevantAndNeededSources returned it has enough and didn't need to run. oteherwise checking if we have the relevant sources happens twice  on the same source ocuments data info.
         relevantAndNeededSources = await getRelevantAndNeededSources(section.description, true)
 
-        const required_source_ids = relevantAndNeededSources.source_ids.slice(0, 20) 
+        let required_source_ids = relevantAndNeededSources.source_ids.slice(0, 20).map(id => id.split('_')[1]); 
 
         newActivity(`Using ${required_source_ids.length} sources`)
 

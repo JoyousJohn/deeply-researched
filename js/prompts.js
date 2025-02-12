@@ -266,6 +266,102 @@ Output if no changes needed:
 }`
 
 
+const reviseContentPrompt = `Return only a JSON object that analyzes if a document outline meets specific content requirements. You must modify the outline as needed to make it fully address ALL CONTENT_REQUIREMENTS, including changing, adding, or removing any number of sections. Any changes you describe in changes_explanation MUST be reflected in the modified_outline you return.
+
+Input format:
+1. DOCUMENT_OUTLINE: An array of section objects with the structure:
+    [
+        {
+            "section_title": "string: title of the section",
+            "description": "string: comprehensive explanation of section content",
+            "search_keywords": ["string: specific search term", ...]
+        },
+        ...
+    ]
+2. CONTENT_REQUIREMENTS: A string containing specific content coverage requirements
+
+Output format (return ONLY this JSON object with no additional text):
+{
+    "meets_requirements": boolean,
+    // The following keys are only included if content changes were required:
+    "modified_outline": [
+        {
+            "section_title": "string: section title",
+            "description": "string: section description addressing requirements",
+            "search_keywords": ["string: relevant search terms", ...]
+        },
+        ...
+    ],
+    "changes_explanation": "string: detailed explanation of all content changes made to meet requirements",
+    "requirements_verification": ["string: explanation of how each content requirement is addressed", ...]
+}
+
+Rules:
+- You MUST analyze if the outline addresses ALL elements specified in CONTENT_REQUIREMENTS
+- You MUST modify the outline to fully cover missing or inadequately addressed requirements by:
+  - Adding new sections for missing content
+  - Expanding existing sections to cover requirements more thoroughly
+  - Removing redundant or irrelevant sections
+  - Merging or splitting sections to better organize required content
+  - Adding specific data points or analyses needed
+- The modified_outline you return MUST exactly match the changes you describe in changes_explanation
+- The requirements_verification list MUST explicitly show how each content requirement is addressed
+- If DOCUMENT_OUTLINE fully meets CONTENT_REQUIREMENTS:
+  Return: { "meets_requirements": true }
+- If any content requirements are not met:
+  Return: {
+    "meets_requirements": false,
+    "modified_outline": [fully corrected outline matching your changes_explanation],
+    "changes_explanation": "explanation of changes that exactly match your modified_outline",
+    "requirements_verification": ["verification of each requirement's coverage"]
+  }
+
+Example:
+Input:
+{
+    "DOCUMENT_OUTLINE": [
+        {
+            "section_title": "Market Overview",
+            "description": "General discussion of current market conditions",
+            "search_keywords": ["market", "overview"]
+        }
+    ],
+    "CONTENT_REQUIREMENTS": "Must include 5-year market forecast, competitive analysis with market shares, and regulatory impact assessment"
+}
+
+Output if changes needed:
+{
+    "meets_requirements": false,
+    "modified_outline": [
+        {
+            "section_title": "Market Overview and Forecast",
+            "description": "Analysis of current market conditions and detailed 5-year growth projections",
+            "search_keywords": ["market", "overview", "forecast", "growth"]
+        },
+        {
+            "section_title": "Competitive Landscape",
+            "description": "Comprehensive analysis of market shares and competitive positioning of key players",
+            "search_keywords": ["competition", "market share", "competitors"]
+        },
+        {
+            "section_title": "Regulatory Analysis",
+            "description": "Assessment of current regulations and their impact on market development",
+            "search_keywords": ["regulations", "compliance", "impact"]
+        }
+    ],
+    "changes_explanation": "Added forecast component to Market Overview, created new Competitive Landscape section for market share analysis, added Regulatory Analysis section",
+    "requirements_verification": [
+        "5-year forecast integrated into Market Overview and Forecast section",
+        "Competitive analysis with market shares covered in new Competitive Landscape section",
+        "Regulatory impact assessed in dedicated Regulatory Analysis section"
+    ]
+}
+
+Output if no changes needed:
+{
+    "meets_requirements": true
+}
+    `
 
 
 const categorizeSourcePrompt = `You will be provided a large body of text. Your task is to return a string sufficiently describing what the content within the text is and contains. Be extremely detailed and thorough; cover all the info covered in the text, but do not explain its purpose. The end goal is categorize this text based on its description of its contents.
@@ -346,7 +442,7 @@ Important: Do *NOT* add any comments.
 
 Example response:
 {
-    "source_ids": [1, 2, 3, 4, 7, 9], (List of most relevant source IDs, maximum of 20)
+    "source_ids": [SRC_1, SRC_2, SRC_3, SRC_4, SRC_7, SRC_9], (List of most relevant source IDs, maximum of 20)
     "required_info_description": "string", (Only include if information is missing)
     "search_term": "string" (Only include if information is missing)
 }
@@ -384,7 +480,7 @@ Evaluation Process:
 
 Requirements:
 - Return a JSON object containing only the source_ids key
-- The source_ids value should be an array of up to 20 numerical IDs
+- The source_ids value should be an array of up to 20 source ID strings
 - IDs should be ordered by relevance/importance
 
 Important formatting rules:
@@ -396,7 +492,7 @@ Important formatting rules:
 - Do not return any notes or comments
 
 Example response:
-{"source_ids":[1,2,3,4,7,9]}
+{"source_ids":[SRC_1, SRC_2, SRC_3, SRC_4, SRC_7, SRC_9]}
 
 Before finalizing response:
 - Verify that the most critical sources are included

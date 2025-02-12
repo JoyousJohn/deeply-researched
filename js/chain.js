@@ -113,90 +113,22 @@ function nextPhase() {
         ]
 
         newActivity('Confirming formatting adherence', undefined, undefined, true);
+
+    } else if (phase === 'reviseContent') {
+        payload['messages'] = [
+            {role: "system", content: reviseContentPrompt},
+            {role: "user", content: `
+                DOCUMENT_OUTLINE: ${JSON.stringify(plan)}
+                CONTENT_REQUIREMENTS: ${refinedContentRequirements}`
+            },
+            {role: "assistant", content: "{"}
+        ]
+
+        newActivity('Confirming content adherence', undefined, undefined, true);
+
     }
 
     makeRequest(payload);
-}
-
-
-function addTokenUsageToActivity(usage, url, timerId) {
-
-    // alert(timerId)
-
-    let totalTime = '';
-    if (usage.total_time) {
-        totalTime = usage.total_time
-    } else if (usage.total_latency) {
-        totalTime = usage.total_latency
-    }
-    if (totalTime) {
-        totalTime = ' | ' + totalTime.toFixed(2) + 's'
-    }
-
-    let cost = '';
-    if (usage.estimated_cost) {
-        cost = usage.estimated_cost.toString().split(/(?<=\.\d*?[1-9])/)[0];
-        cost = ' | $' + cost
-        overallTokens['cost'] += usage.estimated_cost
-    }
-
-    overallTokens['requests']++
-
-    if (url) {
-        const $element = $(`.token-count[data-activity-url="${url}"]:not(.activity-error)`).first();
-        $element.text(usage.prompt_tokens + ' / ' + usage.completion_tokens + ' / ' + usage.total_tokens + ' tokens' + totalTime + cost);
-        $element.parent().find('.activity-header').removeClass('activity-understanding');
-    } else {
-        $('.token-count:not(.activity-error').first().text(usage.prompt_tokens + ' / ' + usage.completion_tokens + ' / ' + usage.total_tokens + ' tokens' + totalTime + cost);
-    }
-
-    if (timerId) {
-        // console.log(`Stopping timer with id: ${timerId}`)
-        stopActivityTimer(timerId);
-    }
-
-    if (cost) {
-        cost = ' $' + overallTokens['cost'].toString().split(/(?<=\.\d*?[1-9]\d)/)[0] + ' / '
-    }
-
-    overallTokens['input'] += usage.prompt_tokens
-    overallTokens['output'] += usage.completion_tokens
-
-    const current_time = new Date();
-    const timeDifference = current_time - stats['start_time'];
-    let minutes = (timeDifference / (1000 * 60));
-  
-    let rpm = (overallTokens['requests']/minutes).toFixed(1)
-    if (rpm > overallTokens['requests']) {
-        rpm = overallTokens['requests']
-    }
-
-    let workingContext = '';
-    let totalWords = 0;
-
-    let memoryMapContext = ''
-    let memoryMapWordsLength = 0;
-
-    if (Object.keys(sources).length !== 0) {
-        workingContext = 0;
-        Object.values(sources).forEach(source => {
-            workingContext += source['length'];
-            totalWords += source['text'].split(' ').length
-
-            if (source['description']) {
-                memoryMapContext += source['description']
-                memoryMapWordsLength += source['description'].split(' ').length
-            }
-        })
-        workingContext = workingContext.toLocaleString()
-        workingContext = '<br>Source context: ' + workingContext + ` chars / ${totalWords.toLocaleString()} words`
-
-        memoryMapContext =  `<br> Memory map: ` + memoryMapContext.length.toLocaleString() + ` chars / ${memoryMapWordsLength.toLocaleString()} words`
-
-    }
-
-    $('.overall-tokens').html(`${overallTokens['input'].toLocaleString()} / ${overallTokens['output'].toLocaleString()} / ${(overallTokens['input'] + overallTokens['output']).toLocaleString()} total tokens <br>${cost} ${overallTokens['requests']} request${overallTokens['requests'] !== 1 ? 's' : ''} / <span class="rpm">${rpm}</span> RPM${workingContext}${memoryMapContext}`)
-
 }
 
 
@@ -365,8 +297,9 @@ function makeRequest(payload) {
             console.log(context)
 
             if (follows_formatting) {
+                setPhase('reviseContent')
                 newActivity('Layout conforms with formatting')
-                beginSearches();
+                nextPhase();
             } else {
                 newActivity('Modified layout to follow formatting')
                 priorPlans.push(plan)
@@ -374,6 +307,23 @@ function makeRequest(payload) {
                 nextPhase(); // iterate again
             }
 
+        } else if (phase === `reviseContent`) {
+
+            addTokenUsageToActivity(usage, undefined, latestTimerId())
+
+            const meets_requirements = context.meets_requirements
+
+            console.log(context)
+
+            if (meets_requirements) {
+                newActivity('Layout content conforms with requirements')
+                beginSearches();
+            } else {
+                newActivity('Modified layout to follow content requirements')
+                priorPlans.push(plan)
+                plan = context.modified_outline
+                nextPhase(); // iterate again
+            }
 
         } else {
             // Fallback: simply add the full response to the modal
@@ -381,8 +331,90 @@ function makeRequest(payload) {
         }
     })
     .catch(error => console.error('Error:', error));
-  }
+}
   
+
+
+  function addTokenUsageToActivity(usage, url, timerId) {
+
+    // alert(timerId)
+
+    let totalTime = '';
+    if (usage.total_time) {
+        totalTime = usage.total_time
+    } else if (usage.total_latency) {
+        totalTime = usage.total_latency
+    }
+    if (totalTime) {
+        totalTime = ' | ' + totalTime.toFixed(2) + 's'
+    }
+
+    let cost = '';
+    if (usage.estimated_cost) {
+        cost = usage.estimated_cost.toString().split(/(?<=\.\d*?[1-9])/)[0];
+        cost = ' | $' + cost
+        overallTokens['cost'] += usage.estimated_cost
+    }
+
+    overallTokens['requests']++
+
+    if (url) {
+        const $element = $(`.token-count[data-activity-url="${url}"]:not(.activity-error)`).first();
+        $element.text(usage.prompt_tokens + ' / ' + usage.completion_tokens + ' / ' + usage.total_tokens + ' tokens' + totalTime + cost);
+        $element.parent().find('.activity-header').removeClass('activity-understanding');
+    } else {
+        $('.token-count:not(.activity-error').first().text(usage.prompt_tokens + ' / ' + usage.completion_tokens + ' / ' + usage.total_tokens + ' tokens' + totalTime + cost);
+    }
+
+    if (timerId) {
+        // console.log(`Stopping timer with id: ${timerId}`)
+        stopActivityTimer(timerId);
+    }
+
+    if (cost) {
+        cost = ' $' + overallTokens['cost'].toString().split(/(?<=\.\d*?[1-9]\d)/)[0] + ' / '
+    }
+
+    overallTokens['input'] += usage.prompt_tokens
+    overallTokens['output'] += usage.completion_tokens
+
+    const current_time = new Date();
+    const timeDifference = current_time - stats['start_time'];
+    let minutes = (timeDifference / (1000 * 60));
+  
+    let rpm = (overallTokens['requests']/minutes).toFixed(1)
+    if (rpm > overallTokens['requests']) {
+        rpm = overallTokens['requests']
+    }
+
+    let workingContext = '';
+    let totalWords = 0;
+
+    let memoryMapContext = ''
+    let memoryMapWordsLength = 0;
+
+    if (Object.keys(sources).length !== 0) {
+        workingContext = 0;
+        Object.values(sources).forEach(source => {
+            workingContext += source['length'];
+            totalWords += source['text'].split(' ').length
+
+            if (source['description']) {
+                memoryMapContext += source['description']
+                memoryMapWordsLength += source['description'].split(' ').length
+            }
+        })
+        workingContext = workingContext.toLocaleString()
+        workingContext = '<br>Source context: ' + workingContext + ` chars / ${totalWords.toLocaleString()} words`
+
+        memoryMapContext =  `<br> Memory map: ` + memoryMapContext.length.toLocaleString() + ` chars / ${memoryMapWordsLength.toLocaleString()} words`
+
+    }
+
+    $('.overall-tokens').html(`${overallTokens['input'].toLocaleString()} / ${overallTokens['output'].toLocaleString()} / ${(overallTokens['input'] + overallTokens['output']).toLocaleString()} total tokens <br>${cost} ${overallTokens['requests']} request${overallTokens['requests'] !== 1 ? 's' : ''} / <span class="rpm">${rpm}</span> RPM${workingContext}${memoryMapContext}`)
+
+}
+
 
 function newTimerId() {
     return $('.activity-header').length + 1;
