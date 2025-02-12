@@ -71,7 +71,7 @@ function nextPhase() {
             {role: "system", content: narrowQuestionPrompt},
             {role: "user", content: "The user's research query is: " + input}
         ]
-        newActivity('Eliminating ambiguity', undefined, undefined, true);
+        newActivity('Detecting any ambiguity', undefined, undefined, true);
     
     }  else if (phase === 'refiningQuestionsAsked') {
 
@@ -306,6 +306,7 @@ function makeRequest(payload) {
                 addToModalMessage('\n\nI made some formatting changes to the layout: ' + context.changes_explanation)
                 priorPlans.push(plan)
                 plan = context.modified_layout
+                addPlanToOutline(plan)
                 nextPhase(); // iterate again
             }
 
@@ -325,6 +326,7 @@ function makeRequest(payload) {
                 addToModalMessage('\n\nI modified the layout to fulfill all content requirements: ' + context.changes_explanation)
                 priorPlans.push(plan)
                 plan = context.modified_outline
+                addPlanToOutline(plan)
                 nextPhase(); // iterate again
             }
 

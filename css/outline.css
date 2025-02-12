@@ -1,12 +1,22 @@
 .outline {
-    margin: 3rem 0;
-    row-gap: 3rem;
+    margin-top: 3rem;
     line-height: 1.45;
+}
+
+.outline-sections {
+    row-gap: 3rem;
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
 }
 
 .outline > div {
     padding: 0 3rem;
     cursor: pointer;
+}
+
+.outline-query {
+    margin-bottom: 3rem;
 }
 
 .outline-section {
@@ -29,7 +39,7 @@
 
 .outline-section-title {
     font-size: 1.6rem;
-    color: #f1f1f1;
+    color: #e2e2e2;
     transition: 150ms;
 }
 
@@ -41,4 +51,28 @@
 .outline-section-desc {
     color: #c9c9c9;
     font-size: 1.55rem;
+}
+
+.iteration {
+    border-radius: 3rem;
+    width: max-content;
+    padding: 0.5rem 1rem !important;
+    margin-left: 3rem;
+    background-color: #363636;
+}
+
+.iteration-back, .iteration-forward {
+    font-size: 1.5rem;
+    color: rgb(119, 119, 119);
+    transition: 100ms;
+    user-select: none;
+}
+
+.iteration-back:hover, .iteration-forward:hover {
+    color: rgb(84, 84, 84);
+}
+
+.iteration-title {
+    font-size: 1.5rem;
+    color: #e0e0e0;
 }

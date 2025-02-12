@@ -15,13 +15,19 @@ $(document).keydown(function(e) {
         if (selected === 'sources') {
             $('.status-option[data-option="activity"]').click();
         } else if (selected === 'outline') {
-            $('.status-option[data-option="sources"]').click();
+            if (shownIteration === 1) {
+                $('.status-option[data-option="sources"]').click();
+            } else {
+                $('.iteration-back').click();
+            }
         }
     } else if (e.key === 'ArrowRight') {
         if (selected === 'activity') {
             $('.status-option[data-option="sources"]').click();
         } else if (selected === 'sources') {
             $('.status-option[data-option="outline"]').click();
+        } else if (selected === 'outline') {
+            $('.iteration-forward').click();
         }
     }
 });

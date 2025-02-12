@@ -1,9 +1,19 @@
+let shownIteration = 1;
+
 function addPlanToOutline() {
+
+    $(`[data-plan-number]`).hide();
+    $('.iteration').show();
+
+    const planNum = priorPlans.length + 1
+    shownIteration = priorPlans.length + 1
+
+    // alert(planNum)
 
     plan.forEach((section, index) => {
         
         const $outlineSection = $(`
-        <div class="flex flex-col gap-y-1rem">
+        <div class="flex flex-col gap-y-1rem" data-plan-number="${planNum}">
             
             <div class="flex">
                 <div class="section-dropdown flex items-center">▼ </div>
@@ -35,7 +45,9 @@ function addPlanToOutline() {
             $(this).find('.outline-section-title').css('color', '#f1f1f1');
         })
 
-        $('.outline').append($outlineSection)
+        $('.outline-sections').append($outlineSection)
+
+        $('.iteration-title').text(`Iteration ${planNum}/${planNum}`).show();
 
     });
 
@@ -81,6 +93,27 @@ function addQueryToOutline(context) {
         $(this).find('.outline-section-title').css('color', '#f1f1f1');
     })
 
-    $('.outline').append($outlineSection)
-
+    $('.outline-query').append($outlineSection)
 }
+
+$('.iteration-back').click(function() {
+    if (shownIteration === 1) {
+        return
+    }
+
+    shownIteration--;
+    $(`[data-plan-number]`).hide();
+    $(`[data-plan-number="${shownIteration}"]`).show();
+    $('.iteration-title').text(`Iteration ${shownIteration}/${priorPlans.length+1}`)
+})
+
+$('.iteration-forward').click(function() {
+    if (shownIteration === priorPlans.length + 1) {
+        return
+    }
+
+    shownIteration++;
+    $(`[data-plan-number]`).hide();
+    $(`[data-plan-number="${shownIteration}"]`).show();
+    $('.iteration-title').text(`Iteration ${shownIteration}/${priorPlans.length+1}`)
+})
