@@ -61,14 +61,14 @@ Do not include any text before or after the JSON object.`
 
 const refactorPrompt = `You are a research query analyzer. Your task is to analyze a user's initial query, follow-up questions, and their answers, then provide three key pieces of information:
 1. A precise, detailed description of the information being sought
-2. Specific formatting requirements for the response mentioned in or derived from the input information
+2. Specific formatting requirements for the response mentioned in or derived from the input information. Do not hallucinate formatting requirements that were not explicitly mentioned in the input.
 3. Required content elements that must be included in the response
 
 Your response must be JSON in this format:
 {
     "query": <string describing the core information needs>,
-    "formatting_requirements": <string containing specific textual and visual formatting requirements>,
     "content_requirements": <string listing mandatory content elements>
+    "formatting_requirements": <string containing specific textual formatting requirements, if any>,
 }
 
 Ensure your JSON is valid and well-constructed.
@@ -84,15 +84,6 @@ For the query analysis:
 - Begin with "This query seeks information about"
 - Do NOT include any formatting requirements in this section
 
-For the formatting requirements, specify (if mentioned):
-- Any specific formats (tables, lists, diagrams, etc.)
-- Structure of the response (paragraphs, sections, etc.)
-- Level of technical detail required
-- Any specific citation formats
-- Any specific organizational requirements
-- Do not specify a citation format unless otherwise mentioned
-- Do not mention any required topics or subjects
-
 For the required content elements:
 - List all specifically requested topics that must be covered
 - Include any mandatory examples, case studies, or scenarios
@@ -104,6 +95,13 @@ For the required content elements:
 - Include any required perspectives or viewpoints
 - Specify any necessary calculations or analyses
 - List any required recommendations or solutions
+
+If any of these were included in the inputs, specify them in the formatting requirements output:
+- Any specific formats (tables, lists, diagrams, etc.)
+- Structure of the response (paragraphs, sections, etc.)
+- Any specific organizational requirements
+- Do not mention any required topics or subjects
+
 
 Note: If parts of the follow-up answers do not relate to the initial query or questions, ignore these parts.
 
@@ -117,6 +115,11 @@ USER_QUERY: [Initial user query text]
 QUESTIONS_ASKED: [Array of follow-up questions that were asked]
 USER_ANSWERS: [Array of user's responses to those questions]
 `
+
+//- Do not specify a citation format unless otherwise mentioned
+
+// - Example formatting_requirements: "Three sections. A bullet point list showcasing the statistics."
+
 
 const createSections = `You are tasked with creating a comprehensive document structure. You will be provided with three inputs: 1) a detailed query describing the core information needs, 2) specific formatting requirements, and 3) required content elements. Your task is to create detailed sections that address these requirements while adhering to the specified formatting.
 
@@ -193,7 +196,7 @@ Input format:
 
 Output format (return ONLY this JSON object with no additional text):
 {
-    "follows_formatting": boolean,
+    "follows_formatting": boolean: whether or not the outline follows FORMAT_REQUIREMENTS, 
     // The following keys are only included if formatting changes were required:
     "modified_layout": [
         {
@@ -442,7 +445,7 @@ Important: Do *NOT* add any comments.
 
 Example response:
 {
-    "source_ids": [SRC_1, SRC_2, SRC_3, SRC_4, SRC_7, SRC_9], (List of most relevant source IDs, maximum of 20)
+    "source_ids": ["SRC_1", "SRC_2", "SRC_3", "SRC_4", "SRC_7", "SRC_9"], (List of most relevant source IDs, maximum of 20)
     "required_info_description": "string", (Only include if information is missing)
     "search_term": "string" (Only include if information is missing)
 }
@@ -492,7 +495,7 @@ Important formatting rules:
 - Do not return any notes or comments
 
 Example response:
-{"source_ids":[SRC_1, SRC_2, SRC_3, SRC_4, SRC_7, SRC_9]}
+{"source_ids":["SRC_1", "SRC_2", "SRC_3", "SRC_4", "SRC_7", "SRC_9"]}
 
 Before finalizing response:
 - Verify that the most critical sources are included

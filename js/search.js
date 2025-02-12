@@ -42,7 +42,9 @@ function replaceSourceWithLink(text) {
     });
 }
 
-
+function replaceStarsWithStrong(text) {
+    return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+}
 
 
 async function beginSearches() {
@@ -136,9 +138,9 @@ async function beginSearches() {
         // add that this only runs if the initial relevantAndNeededSources returned it has enough and didn't need to run. oteherwise checking if we have the relevant sources happens twice  on the same source ocuments data info.
         relevantAndNeededSources = await getRelevantAndNeededSources(section.description, true)
 
-        let required_source_ids = relevantAndNeededSources.source_ids.slice(0, 20).map(id => id.split('_')[1]); 
+        let required_source_ids = relevantAndNeededSources.source_ids.slice(0, 20).map(id => parseInt(id.split('_')[1])); 
 
-        newActivity(`Using ${required_source_ids.length} sources`)
+        newActivity(`Using ${required_source_ids.length} sources: ${required_source_ids.join(', ')}`)
 
         console.log("required_source_ids: ", required_source_ids)
 
@@ -173,7 +175,7 @@ async function beginSearches() {
 
     finalContent.forEach(section => {
         addToModalMessage('\n\n\n\n<span class="text-2rem">' + section.section_title + '</span>')
-        addToModalMessage('\n\n' + replaceSourceWithLink(section.section_content))
+        addToModalMessage('\n\n' + replaceStarsWithStrong(replaceSourceWithLink(section.section_content)))
 
         usage.in += section.tokens.in
         usage.out += section.tokens.out

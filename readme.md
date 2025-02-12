@@ -115,12 +115,12 @@ Different models of similar sizes have shown vastly different performance. Many 
 | Claude 3 Haiku | Poor |
 | WizardLM-2 8x22B | Poor |
 | Euryale 3.1 70B v2.2 | Poor |
+| Mistral Nemo Instruct 2407 | Poor |
 | | |
 | Phi 4 | Incompatible |
 | Llama 3.2 3B Instruct | Incompatible |
 | Llama 3.2 1B Instruct | Incompatible |
 | Gemini 2.0 Flash Light Preview 02-05 | Incompatible |
-| Mistral Nemo Instruct 2407 | Incompatible |
 | Qwen 2.5 72B Instruct | Incompatible |
 | Gemini 2.0 Pro (Exp) | Incompatible |
 | LFM 7B | Incompatible |

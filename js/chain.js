@@ -71,7 +71,7 @@ function nextPhase() {
             {role: "system", content: narrowQuestionPrompt},
             {role: "user", content: "The user's research query is: " + input}
         ]
-        newActivity('Recognizing any ambiguity', undefined, undefined, true);
+        newActivity('Eliminating ambiguity', undefined, undefined, true);
     
     }  else if (phase === 'refiningQuestionsAsked') {
 
@@ -86,7 +86,7 @@ function nextPhase() {
         ]
 
         setPhase('refineTaskWithAnsweredQuestions')
-        newActivity('User answered refining questions');
+        newActivity('Refining questions answered');
         newActivity("Refining the task", undefined, undefined, true);
     
 
@@ -198,8 +198,8 @@ function makeRequest(payload) {
             questions = context.questions
 
             let msgStr = preamble + '\n'
-            questions.forEach(question => {
-                msgStr += '\n•  ' + question
+            questions.forEach((question, index) => {
+                msgStr += `\n${index + 1}.  ` + question
             })
             newModelMessageElm()
             addToModalMessage(msgStr)
@@ -302,6 +302,8 @@ function makeRequest(payload) {
                 nextPhase();
             } else {
                 newActivity('Modified layout to follow formatting')
+                // newModelMessageElm(true)
+                addToModalMessage('\n\nI made some formatting changes to the layout: ' + context.changes_explanation)
                 priorPlans.push(plan)
                 plan = context.modified_layout
                 nextPhase(); // iterate again
@@ -320,6 +322,7 @@ function makeRequest(payload) {
                 beginSearches();
             } else {
                 newActivity('Modified layout to follow content requirements')
+                addToModalMessage('\n\nI modified the layout to fulfill all content requirements: ' + context.changes_explanation)
                 priorPlans.push(plan)
                 plan = context.modified_outline
                 nextPhase(); // iterate again
