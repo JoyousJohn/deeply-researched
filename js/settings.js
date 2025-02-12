@@ -1,4 +1,4 @@
-const maxBranches = 2;
+const maxBranches = 0;
 
 const defaultSettings = {
     'braveKey': null,

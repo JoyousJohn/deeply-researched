@@ -38,7 +38,7 @@ function appendURLS(links) {
 function replaceSourceWithLink(text) {
     return text.replace(/\[SRC_(\d+)\]/g, (match, id) => {
         const source = sources[id];
-        return source ? `<a class="text-source" target="_blank" href="${source.url}">${id+1}</a>` : match;
+        return source ? `<a class="text-source" target="_blank" href="${source.url}">${parseInt(id)+1}</a>` : match;
     });
 }
 
@@ -356,7 +356,7 @@ async function getRelevantAndNeededSources(sectionDescription, sources_only) {
 
     let sourceDescriptions = {}
     for (const [key, value] of Object.entries(sources)) {
-        sourceDescriptions[key] = value.description;
+        sourceDescriptions[`SRC_${key}`] = value.description;
     }
 
     let prompt;
@@ -391,20 +391,19 @@ async function getRelevantAndNeededSources(sectionDescription, sources_only) {
 
 
 
-function sendRequestToDecoder(messages_payload, max_tokens) {
+function sendRequestToDecoder(messages_payload, max_tokens, do_stream = false) {
     return new Promise((resolve, reject) => {
         let payload = {
             model: decoderModelId,
-            // repetition_penalty: 1.1,
             temperature: 0.7,
             top_p: 0.9,
-            // top_k: 40,
             messages: messages_payload,
             max_tokens: 8192,
+            stream: do_stream
         };
 
         if (max_tokens) {
-            payload['max_tokens'] = max_tokens
+            payload['max_tokens'] = max_tokens;
         }
 
         fetch(decoderBase, {
@@ -417,16 +416,17 @@ function sendRequestToDecoder(messages_payload, max_tokens) {
         })
         .then(response => {
             if (!response.ok) {
+                // Rate limit handling remains the same
                 if (response.status === 429) {
                     if (!isWaiting) {
                         isWaiting = true;
-                        newActivity(`Received error 429: Too many requests. Retrying in 1 minute...`, is_error = true);
+                        newActivity(`Received error 429: Too many requests. Retrying in 1 minute...`, true);
                         let countdown = remainingWaitTime / 1000;
                         const countdownInterval = setInterval(() => {
                             countdown--;
                             $('.activity-working').text(`Received error 429: Too many requests. Retrying in ${countdown}s...`);
                         }, 1000);
-                
+
                         return new Promise(resolve => setTimeout(() => {
                             clearInterval(countdownInterval);
                             newActivity(`Trying again after waiting for 1 minute...`);
@@ -436,36 +436,146 @@ function sendRequestToDecoder(messages_payload, max_tokens) {
                         }, remainingWaitTime))
                         .then(() => sendRequestToDecoder(messages_payload, max_tokens));
                     } else {
-                        // Modify the else branch to also call sendRequestToDecoder after waiting:
                         return new Promise(resolve => setTimeout(resolve, remainingWaitTime))
                             .then(() => sendRequestToDecoder(messages_payload, max_tokens));
                     }
                 }
-                
-                newActivity(`Receive error: ${response.status}`);
+
                 return response.text().then(text => {
-                    newActivity(`Response body: ${text}`); // Log the response body in newActivity
-                    reject(new Error(`HTTP error! status: ${response.status}`));
+                    newActivity(`Received error: ${response.status}`);
+                    newActivity(`Response body: ${text}`);
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 });
-            } else {
-                return response.json(); // Return the promise for the JSON data
             }
-        })
-        .then(response_json => {
-            if (!response_json) {
-                console.log("Response JSON:", response_json);
-                throw new Error("Invalid response format: response_json is undefined.");
-            } else if (!response_json.choices) {
-                console.log("Response JSON:", response_json);
-                throw new Error("Invalid response format: response_json does not contain 'choices'.");
-            } else if (response_json.choices.length === 0) {
-                console.log("Response JSON:", response_json);
-                throw new Error("Invalid response format: response_json.choices is empty.");
+
+            if (do_stream) {
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder("utf-8");
+                let result = '';
+                let usage = null;
+                let hasResolved = false;
+
+                function read() {
+                    return reader.read().then(({ done, value }) => {
+                        if (done) {
+                            // Process any remaining complete messages in the buffer
+                            if (buffer) {
+                                const finalMessages = buffer.split('\n\n')
+                                    .filter(line => line.trim() !== '')
+                                    .filter(line => line.startsWith('data: '));
+                                    
+                                for (const message of finalMessages) {
+                                    try {
+                                        const jsonString = message.slice(6);
+                                        if (jsonString === '[DONE]') continue;
+                                        
+                                        const data = JSON.parse(jsonString);
+                                        if (data.choices?.[0]?.delta?.content) {
+                                            result += data.choices[0].delta.content;
+                                            addToModalMessage(data.choices[0].delta.content);
+                                        }
+                                        if (data.usage) {
+                                            usage = data.usage;
+                                        }
+                                    } catch (error) {
+                                        console.warn('Failed to parse final buffer message:', error);
+                                    }
+                                }
+                            }
+                            
+                            if (!hasResolved) {
+                                hasResolved = true;
+                                resolve({
+                                    choices: [{
+                                        message: {
+                                            content: result
+                                        }
+                                    }],
+                                    usage: usage
+                                });
+                            }
+                            return;
+                        }
+
+                        // Decode the chunk with streaming support
+                const chunk = decoder.decode(value, { stream: true });
+                
+                // Buffer management
+                let buffer = '';
+                buffer += chunk;
+                
+                // Look for complete messages
+                const messages = buffer.split('\n\n');
+                // Keep the last potentially incomplete message in the buffer
+                buffer = messages.pop() || '';
+                
+                // Process complete messages
+                const dataObjects = messages.filter(line => line.trim() !== '');
+
+                        for (const dataObject of dataObjects) {
+                            if (!dataObject.startsWith('data: ')) continue;
+
+                            try {
+                                const jsonString = dataObject.slice(6);
+                                
+                                if (jsonString === '[DONE]') {
+                                    if (!hasResolved) {
+                                        hasResolved = true;
+                                        resolve({
+                                            choices: [{
+                                                message: {
+                                                    content: result
+                                                }
+                                            }],
+                                            usage: usage
+                                        });
+                                    }
+                                    return;
+                                }
+
+                                const data = JSON.parse(jsonString);
+
+                                if (data.usage) {
+                                    usage = data.usage;
+                                }
+
+                                if (data.choices?.[0]?.delta?.content) {
+                                    const contentChunk = data.choices[0].delta.content;
+                                    result += contentChunk;
+                                    addToModalMessage(contentChunk);
+                                }
+                            } catch (error) {
+                                console.error('Failed to parse chunk:', error);
+                                console.error('Problematic chunk:', dataObject);
+                            }
+                        }
+
+                        return read();
+                    }).catch(error => {
+                        console.error('Stream reading error:', error);
+                        if (!hasResolved) {
+                            hasResolved = true;
+                            reject(error);
+                        }
+                    });
+                }
+
+                return read();
             }
-            
-            // Modify the content as needed
-            response_json.choices[0].message.content = response_json.choices[0].message.content.replace('```json', '').replace('```', '');
-            resolve(response_json);
+
+            return response.json().then(response_json => {
+                if (!response_json?.choices?.length) {
+                    console.error("Invalid response format:", response_json);
+                    throw new Error("Invalid response format");
+                }
+
+                response_json.choices[0].message.content = 
+                    response_json.choices[0].message.content
+                        .replace('```json', '')
+                        .replace('```', '');
+                        
+                resolve(response_json);
+            });
         })
         .catch(error => {
             console.error('Error:', error);
@@ -491,7 +601,8 @@ async function analyzeSearch(searchData, section) {
         ` }
     ];
 
-    const data = await sendRequestToDecoder(messages_payload);
+    newModelMessageElm(true)
+    const data = await sendRequestToDecoder(messages_payload, undefined, true);
     const content = data.choices[0].message.content;
     const usage = data.usage;
     

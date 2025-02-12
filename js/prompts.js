@@ -67,7 +67,7 @@ const refactorPrompt = `You are a research query analyzer. Your task is to analy
 Your response must be JSON in this format:
 {
     "query": <string describing the core information needs>,
-    "formatting_requirements": <string containing specific formatting requirements>,
+    "formatting_requirements": <string containing specific textual and visual formatting requirements>,
     "content_requirements": <string listing mandatory content elements>
 }
 
@@ -85,17 +85,13 @@ For the query analysis:
 - Do NOT include any formatting requirements in this section
 
 For the formatting requirements, specify (if mentioned):
-- Required depth and breadth of information
 - Any specific formats (tables, lists, diagrams, etc.)
-- Required metrics or measurements
-- Types of evidence or sources needed
 - Structure of the response (paragraphs, sections, etc.)
 - Level of technical detail required
 - Any specific citation formats
-- Requirements for examples or illustrations
-- Whether comparisons or analyses are needed
 - Any specific organizational requirements
 - Do not specify a citation format unless otherwise mentioned
+- Do not mention any required topics or subjects
 
 For the required content elements:
 - List all specifically requested topics that must be covered
@@ -154,7 +150,7 @@ Return a JSON array where each object represents a document section. The respons
 * Contain ONLY valid JSON with no additional text or formatting. Do not surround the JSON in backticks. Do not add newline characters. Do not format the JSON as a code block. Return the JSON in raw-text.
 * Include exactly these three fields for each section:
     * "section_title": String containing a clear, professional title for the section.
-    * "description": String containing an extremely detailed explanation of how to implement all requirements from the three inputs for this section. Do not include any newline characters in the description. The description should start with "A... "
+    * "description": String containing an extremely detailed explanation of how to implement all requirements from the three inputs for this section. Do not include any newline characters in the description.
     * "search_keywords": Array of strings containing specific search terms from all three inputs that would help find sources for this section's required information.
 
 Input Format:
@@ -180,33 +176,96 @@ Example format: (no backticks)
     
 `
 
-const requiredInfoPrompt = `You will be provided with a document layout containing sections and detailed descriptions outlining their goals and contents. Analyze these sections and generate a list of required information/sources needed to complete the document.
+const reviseFormattingPrompt = `Return only a JSON object that analyzes if a document layout follows specific formatting requirements. You must modify the layout as needed to make it fully comply with ALL FORMAT_REQUIREMENTS, including changing, adding, or removing any number of sections. Any changes you describe in changes_explanation MUST be reflected in the modified_layout you return.
 
-For each required element:
-1. First create a "topic" - a clear, specific sentence describing the information/source needed
-2. Then create a "search_phrase" - a concise, keyword-rich query optimized for search engines to find relevant sources on this topic
+Input format:
+1. DOCUMENT_LAYOUT: An array of section objects with the structure:
+    [
+        {
+            "section_title": "string: professional title of the section",
+            "description": "string: comprehensive explanation of section requirements",
+            "search_keywords": ["string: specific search term", ...]
+        },
+        ...
+    ]
 
-Requirements:
-- Each dictionary should be self-contained and understandable independently
-- Search phrases should include key technical terms, organizations, time frames, and source types (e.g., reports, studies, datasets)
-- Prioritize actionable search terms that would effectively locate authoritative sources
-- Break down your response into the minimum amount of topics to fully complete the task and find all information.
+2. FORMAT_REQUIREMENTS: A string containing specific formatting rules
 
-Return response as a JSON array of dictionaries with "topic" and "search_phrase" keys.
-
-Example response format:
+Output format (return ONLY this JSON object with no additional text):
 {
-  "topics": [
-    {
-      "topic": "Analysis of historical climate change trends over the past century",
-      "search_phrase": "historical climate change data 1900-2000 NOAA report"
-    },
-    {
-      "topic": "Statistics on current greenhouse gas emissions by country",
-      "search_phrase": "GHG emissions by country 2023 IPCC dataset"
-    }
-  ]
-}`;
+    "follows_formatting": boolean,
+    // The following keys are only included if formatting changes were required:
+    "modified_layout": [
+        {
+            "section_title": "string: section title following requirements",
+            "description": "string: section description following requirements",
+            "search_keywords": ["string: updated search terms", ...]
+        },
+        ...
+    ],
+    "changes_explanation": "string: detailed explanation of all formatting changes made to the layout"
+}
+
+Rules:
+- You MUST modify the layout structure to fully comply with ALL FORMAT_REQUIREMENTS by:
+  - Adding new sections when required
+  - Removing sections that don't match requirements
+  - Merging or splitting sections as needed
+  - Reordering sections to match required structure
+  - Modifying section content and formatting
+  - Changing any aspect of sections to meet requirements
+- The modified_layout you return MUST exactly match the changes you describe in changes_explanation
+- If DOCUMENT_LAYOUT fully complies with FORMAT_REQUIREMENTS:
+  Return: { "follows_formatting": true }
+- If any formatting issues exist:
+  Return: {
+    "follows_formatting": false,
+    "modified_layout": [fully corrected layout matching your changes_explanation],
+    "changes_explanation": "explanation of changes that exactly match your modified_layout"
+  }
+
+Example:
+Input:
+{
+    "DOCUMENT_LAYOUT": [
+        {
+            "section_title": "Energy Drink Sales",
+            "description": "Overview of all energy drink sales",
+            "search_keywords": ["sales", "overview"]
+        }
+    ],
+    "FORMAT_REQUIREMENTS": "Must have separate sections for each brand and a trends section"
+}
+
+Output if changes needed:
+{
+    "follows_formatting": false,
+    "modified_layout": [
+        {
+            "section_title": "Monster Energy Sales",
+            "description": "Sales data for Monster energy drinks",
+            "search_keywords": ["monster", "sales"]
+        },
+        {
+            "section_title": "Bang Energy Sales", 
+            "description": "Sales data for Bang energy drinks",
+            "search_keywords": ["bang", "sales"]
+        },
+        {
+            "section_title": "Sales Trends",
+            "description": "Overall sales trends analysis",
+            "search_keywords": ["trends", "analysis"]
+        }
+    ],
+    "changes_explanation": "Split single overview section into three sections: Monster sales, Bang sales, and overall trends"
+}
+
+Output if no changes needed:
+{
+    "follows_formatting": true
+}`
+
+
 
 
 const categorizeSourcePrompt = `You will be provided a large body of text. Your task is to return a string sufficiently describing what the content within the text is and contains. Be extremely detailed and thorough; cover all the info covered in the text, but do not explain its purpose. The end goal is categorize this text based on its description of its contents.
@@ -448,10 +507,10 @@ const analyzeArticlesPrompt = `You will be provided the subject of a section, it
 - **NO markdown, bullet points, or section titles.** Write in plain prose.
 - **NO filler phrases** (e.g., "This section will discuss…"). Assume the reader is already within the document.
 - **NO extraneous information.** Exclude anything not explicitly tied to the section's description.
-- **MANDATORY citation format:** Include source ID in square brackets [ID] immediately after any information, quote, or analysis derived from that source. When information comes from multiple sources, include all relevant IDs: [1][2].
-- **NO uncited information.** Every piece of information must be traced to its source(s).
 - **NO repetition.** Do not excessively repeat facts or texts. Rather, delve deeply into their significance with respect to the description.
+- **MANDATORY citation format:** Include source ID in square brackets [ID] immediately after any information, quote, or analysis derived from that source. When information comes from multiple sources, include all relevant IDs: [1][2].
 - When analyzing contradictions or complementary information across sources, focus on the substance while clearly citing each source.
+- Do *not* directly refer or mention the sources in sentences, rather cite the source ID afterward. (*NO saying* "the author...", "the text...", "the source...", "in source x...")
 
 **Citation Examples:**
 - Single source: "The temperature increased by 2.5 degrees" [SRC_1]
@@ -472,6 +531,9 @@ Example input format:
   3: "Text from third source..."
 }`
 // **After every paragraph in your response**: Include the source ID of the sources you used by wrwapping the source ID integer (from the supplied dictionary) in square brackets.
+
+//- **NO uncited information.** Every piece of information must be traced to its source(s).
+
 
 
 

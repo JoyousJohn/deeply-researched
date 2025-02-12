@@ -12,7 +12,8 @@ let input;
 
 let questions;
 
-let plan;
+let plan = [];
+let priorPlans = [];
 let requirements = {};
 let remainingRequirements = {};
 
@@ -70,7 +71,7 @@ function nextPhase() {
             {role: "system", content: narrowQuestionPrompt},
             {role: "user", content: "The user's research query is: " + input}
         ]
-        newActivity('Generating questions to narrow the task', undefined, undefined, true);
+        newActivity('Recognizing any ambiguity', undefined, undefined, true);
     
     }  else if (phase === 'refiningQuestionsAsked') {
 
@@ -101,23 +102,17 @@ function nextPhase() {
 
         newActivity('Creating a search plan', undefined, undefined, true);
     
-    } else if (phase === 'createRequirements') {
-
-        let docDescStr;
-
-        plan.forEach(section => {
-            docDescStr += `${section.section_title}: ${section.description}`
-        })
-
-        // console.log(docDescStr)
-
+    } else if (phase === 'reviseFormatting') {
         payload['messages'] = [
-            {role: "system", content: requiredInfoPrompt},
-            {role: "user", content: `: Paper overview and descriptions for each section: ${docDescStr}`}
+            {role: "system", content: reviseFormattingPrompt},
+            {role: "user", content: `
+                DOCUMENT_LAYOUT: ${JSON.stringify(plan)}
+                FORMAT_REQUIREMENTS: ${refinedFormattingRequirements}`
+            },
+            {role: "assistant", content: "{"}
         ]
 
-        newActivity('Gathering required materials');
-
+        newActivity('Confirming formatting adherence', undefined, undefined, true);
     }
 
     makeRequest(payload);
@@ -240,13 +235,20 @@ function makeRequest(payload) {
                 fullResponse.choices[0].message.content = fullResponse.choices[0].message.content.replace(/\s+/g, ' ')
             }
 
-            if (fullResponse.choices[0].message.content.trim().charAt(0) !== '{') {
-                context = '{' + fullResponse.choices[0].message.content;
+            let content = fullResponse.choices[0].message.content.trim();
+            if (content.charAt(content.length - 1) !== '}') {
+                const lastClosingBraceIndex = content.lastIndexOf('}');
+                console.log(content)
+                content = content.substring(0, lastClosingBraceIndex + 1);
+                console.log(content)
+            }
+            if (content.charAt(0) !== '{') {
+                context = '{' + content;
                 console.log('adding bracket, new json:')
                 console.log(context)
                 context = JSON.parse(context);
             } else {
-                context = JSON.parse(fullResponse.choices[0].message.content.replace('```json', '').replace('```', ''));
+                context = JSON.parse(content.replace('```json', '').replace('```', ''));
             }
             
         } catch (e) {
@@ -272,7 +274,7 @@ function makeRequest(payload) {
 
             addTokenUsageToActivity(usage, undefined, latestTimerId())
             setPhase('refiningQuestionsAsked')
-            newActivity('Asking user to refine their request');
+            newActivity('Waiting for task clarification');
             enableBar();
 
         } else if (phase === 'confirmingValidTopic') {
@@ -346,20 +348,31 @@ function makeRequest(payload) {
             addTokenUsageToActivity(usage, undefined, latestTimerId())
             newActivity('Planned an outline');
             addPlanToOutline()
-            beginSearches();
-            // setPhase('createRequirements')
+
+            // beginSearches();
+
+
+            setPhase('reviseFormatting')
+            nextPhase();
             // nextPhase()
 
-        // currently unused
-        } else if (phase === 'createRequirements') {
+        } else if (phase === 'reviseFormatting') {
 
-            context.topics.forEach((topic, index) => {
-                requirements[index] = topic
-                remainingRequirements[index] = topic
-            })
+            addTokenUsageToActivity(usage, undefined, latestTimerId())
 
-            addTokenUsageToActivity(usage)
-            // beginSearches();
+            const follows_formatting = context.follows_formatting
+
+            console.log(context)
+
+            if (follows_formatting) {
+                newActivity('Layout conforms with formatting')
+                beginSearches();
+            } else {
+                newActivity('Modified layout to follow formatting')
+                priorPlans.push(plan)
+                plan = context.modified_layout
+                nextPhase(); // iterate again
+            }
 
 
         } else {

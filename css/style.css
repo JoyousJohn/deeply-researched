@@ -555,6 +555,8 @@ textarea::-webkit-scrollbar {
     color: #e2e2e2;
     font-size: 1.7rem;
     position: relative;
+    /* word-break: break-word; this or the one below */
+    overflow-wrap: anywhere;
 }
 
 .activity-working, .activity-understanding {
