@@ -116,6 +116,7 @@ Different models of similar sizes have shown vastly different performance. Many 
 | WizardLM-2 8x22B | Poor |
 | Euryale 3.1 70B v2.2 | Poor |
 | Mistral Nemo Instruct 2407 | Poor |
+| Command R Plus | Incompatible |
 | | |
 | Phi 4 | Incompatible |
 | Llama 3.2 3B Instruct | Incompatible |

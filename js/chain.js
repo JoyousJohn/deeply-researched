@@ -47,7 +47,7 @@ function nextPhase() {
         temperature: 0.7,
         top_p: 0.9,
         // top_k: 40,
-        max_tokens: 2048,
+        // max_tokens: 2048,
         // response_format: { type: "json_object" }
     };
 
@@ -59,7 +59,8 @@ function nextPhase() {
 
         payload['messages'] = [
             {role: "system", content: isResearchTopic},
-            {role: "user", content: "The user's query is: " + input}
+            {role: "user", content: "The user's query is: " + input},
+            {role: "assistant", content: "{"}
         ]
         newActivity('Understanding the request', undefined, undefined, true)
         stats['start_time'] = new Date();
@@ -69,7 +70,8 @@ function nextPhase() {
     } else if (phase === 'refiningRequest') {
         payload['messages'] = [
             {role: "system", content: narrowQuestionPrompt},
-            {role: "user", content: "The user's research query is: " + input}
+            {role: "user", content: "The user's research query is: " + input},
+            {role: "assistant", content: "{"}
         ]
         newActivity('Detecting any ambiguity', undefined, undefined, true);
     
@@ -97,7 +99,8 @@ function nextPhase() {
                 QUERY: ${refinedRequest}
                 FORMATTING_REQUIREMENTS: ${refinedFormattingRequirements}
                 CONTENT_REQUIREMENTS: ${refinedContentRequirements}`
-            }
+            },
+            {role: 'assistant', content:'{'}
         ]
 
         newActivity('Creating a search plan', undefined, undefined, true);
@@ -112,7 +115,7 @@ function nextPhase() {
             {role: "assistant", content: "{"}
         ]
 
-        newActivity('Confirming formatting adherence', undefined, undefined, true);
+        newActivity('Confirming document adherence', undefined, undefined, true);
 
     } else if (phase === 'reviseContent') {
         payload['messages'] = [
@@ -126,6 +129,18 @@ function nextPhase() {
 
         newActivity('Confirming content adherence', undefined, undefined, true);
 
+    } else if (phase === 'reviseDocument') {
+        payload['messages'] = [
+            {role: "system", content: reviseDocumentPrompt},
+            {role: "user", content: `
+                DOCUMENT_OUTLINE: ${JSON.stringify(plan)}
+                FORMAT_REQUIREMENTS: ${refinedFormattingRequirements},
+                CONTENT_REQUIREMENTS: ${refinedContentRequirements}`
+            },
+            {role: "assistant", content: "{"}
+        ]
+
+        newActivity('Confirming content adherence', undefined, undefined, true);
     }
 
     makeRequest(payload);
@@ -163,7 +178,7 @@ function makeRequest(payload) {
         try {
             console.log(fullResponse.choices[0].message.content)
 
-            if (phase === 'createSections' || phase === 'refineTaskWithAnsweredQuestions') {
+            if (phase === 'createSections' || phase === 'refineTaskWithAnsweredQuestions' || phase === 'reviseFormatting' || phase === 'reviseContent') {
                 fullResponse.choices[0].message.content = fullResponse.choices[0].message.content.replace(/\s+/g, ' ')
             }
 
@@ -284,7 +299,7 @@ function makeRequest(payload) {
             // beginSearches();
 
 
-            setPhase('reviseFormatting')
+            setPhase('reviseDocument')
             nextPhase();
             // nextPhase()
 
@@ -292,11 +307,11 @@ function makeRequest(payload) {
 
             addTokenUsageToActivity(usage, undefined, latestTimerId())
 
-            const follows_formatting = context.follows_formatting
+            const needed_changes = context.needed_changes
 
             console.log(context)
 
-            if (follows_formatting) {
+            if (!needed_changes) {
                 setPhase('reviseContent')
                 newActivity('Layout conforms with formatting')
                 nextPhase();
@@ -326,6 +341,27 @@ function makeRequest(payload) {
                 addToModalMessage('\n\nI modified the layout to fulfill all content requirements: ' + context.changes_explanation)
                 priorPlans.push(plan)
                 plan = context.modified_outline
+                addPlanToOutline(plan)
+                nextPhase(); // iterate again
+            }
+
+        } else if (phase === `reviseDocument`) {
+
+            addTokenUsageToActivity(usage, undefined, latestTimerId())
+
+            const needed_changes = context.needed_changes
+
+            console.log(context)
+
+            if (!needed_changes) {
+                newActivity('Layout conforms with document requirements')
+                beginSearches();
+            } else {
+                newActivity('Modified layout to follow document requirements')
+                addToModalMessage('\n\nI modified the layout to fulfill formatting requirements: ' + context.changes_explanation.formatting_changes)
+                addToModalMessage('\n\nI modified the layout to fulfill content requirements: ' + context.changes_explanation.content_changes)
+                priorPlans.push(plan)
+                plan = context.modified_layout
                 addPlanToOutline(plan)
                 nextPhase(); // iterate again
             }
@@ -479,6 +515,24 @@ function addToModalMessage(message) {
     // Trigger reflow to ensure transition works
     newSpan[0].offsetHeight;
     newSpan.css({
+        'opacity': '1',
+        'transition': 'opacity 0.2s ease-in'
+    });
+}
+
+function updateModalContent(fullContent) {
+    const $lastMsg = $('.message-wrapper').last();
+    // Store the current scroll position
+    const scrollPos = $('.message-container').scrollTop();
+    
+    // Replace the content while preserving any existing classes and attributes
+    $lastMsg.html(fullContent);
+    
+    // Restore the scroll position
+    $('.message-container').scrollTop(scrollPos);
+    
+    // Ensure all content is visible
+    $lastMsg.find('span').css({
         'opacity': '1',
         'transition': 'opacity 0.2s ease-in'
     });

@@ -26,34 +26,37 @@ Return false (with explanation) for:
 
 The user's input is: `
 
-const narrowQuestionPrompt = `You are a consultant who helps users refine their complex queries or tasks. The user will provide a directive that needs deep analysis and careful consideration. Your task is to ensure their request is specific enough to yield detailed, actionable results.
+
+const narrowQuestionPrompt = `You are a consultant who helps users refine their complex queries or tasks. The user will provide a directive that needs deep analysis and careful consideration. Your task is to help narrow down exactly what they're trying to learn or achieve.
 
 IMPORTANT: Respond with raw JSON only, no markdown formatting or code blocks. The response must be a single JSON object with exactly two keys:
 - "preamble": a string containing your acknowledgment of the query and statement about asking clarifying questions
 - "questions": an array of 3-5 strings, where each question helps narrow down:
-   - The specific objectives or desired outcomes
-   - The precise scope and boundaries of what should be included/excluded
-   - The key components, variables, or criteria for success
-   - The particular context or constraints that matter
-   - The intended audience, use case, or end goal
+   - What part of the topic they want to focus on
+   - The level of detail they're looking for
+   - The format that would be most helpful
+   - The specific aspect they want to understand better
+   - The particular problems they're trying to solve
 
 Each question must:
 - Be a single concise sentence
-- Target a specific aspect of the task that needs clarification
-- Help transform broad requests into specific, actionable items
-- Focus on narrowing the task scope and requirements
-- Focus on the directive, rather than question the user about their knowledge
+- Help narrow down their learning goals or needs
+- Transform broad requests into specific areas of focus
+- Clarify which aspects are most relevant to them
+- Avoid asking them to explain concepts or demonstrate knowledge
 
-If the directive is vague, you may make assumptions in your asked asked questions such that their answers would clarify these uncertenties.
-You may correct suspected typos (i.e. unknown or uncommon words) from the original prompt when asking your questions.
+Instead of asking "What do you know about X?", ask "Would you like to focus on the basics of X or a particular aspect?"
+Instead of asking "Can you explain Y?", ask "Should we cover Y in depth or just the key points?"
+
+If the directive is vague, frame your questions to help identify which specific parts of the topic they want to explore.
 
 Example format:
 {
-  "preamble": "I understand your query about X and will ask some clarifying questions to help focus the task.",
+  "preamble": "I'll help you focus on the aspects of X that are most relevant to your needs.",
   "questions": [
-    "What specific aspects of X are most important for your goals?",
-    "Which particular constraints or requirements must be considered?",
-    "How will the end result be used or implemented?"
+    "Would you like to start with the fundamentals or focus on a specific aspect?",
+    "Should this cover a broad overview or dive deep into particular areas?",
+    "Would examples and practical applications be more helpful than theoretical concepts?"
   ]
 }
 
@@ -179,7 +182,21 @@ Example format: (no backticks)
     
 `
 
-const reviseFormattingPrompt = `Return only a JSON object that analyzes if a document layout follows specific formatting requirements. You must modify the layout as needed to make it fully comply with ALL FORMAT_REQUIREMENTS, including changing, adding, or removing any number of sections. Any changes you describe in changes_explanation MUST be reflected in the modified_layout you return.
+const reviseFormattingPrompt = `Return only a JSON object that analyzes if a document layout needs modifications to meet specific formatting requirements. The response MUST strictly follow these output formats with no exceptions:
+
+IF NO CHANGES ARE NEEDED:
+You MUST return EXACTLY and ONLY this object:
+{
+    "needed_changes": false
+}
+
+IF CHANGES ARE NEEDED:
+You MUST return an object with ALL these fields:
+{
+    "needed_changes": true,
+    "modified_layout": [array of modified sections],
+    "changes_explanation": "explanation of changes"
+}
 
 Input format:
 1. DOCUMENT_LAYOUT: An array of section objects with the structure:
@@ -191,43 +208,38 @@ Input format:
         },
         ...
     ]
-
 2. FORMAT_REQUIREMENTS: A string containing specific formatting rules
 
-Output format (return ONLY this JSON object with no additional text):
+Rules:
+- The response format MUST be exactly as specified above with no exceptions
+- When format requirements are already met, return ONLY { "needed_changes": false }
+- When changes are needed, return ALL THREE fields described above
+- NEVER include modified_layout or changes_explanation when needed_changes is false
+- ALWAYS include both modified_layout and changes_explanation when needed_changes is true
+
+Example when no changes needed:
+Input:
 {
-    "follows_formatting": boolean: whether or not the outline follows FORMAT_REQUIREMENTS, 
-    // The following keys are only included if formatting changes were required:
-    "modified_layout": [
+    "DOCUMENT_LAYOUT": [
         {
-            "section_title": "string: section title following requirements",
-            "description": "string: section description following requirements",
-            "search_keywords": ["string: updated search terms", ...]
+            "section_title": "Brand Sales",
+            "description": "Sales data by brand",
+            "search_keywords": ["brand", "sales"]
         },
-        ...
+        {
+            "section_title": "Sales Trends",
+            "description": "Overall trends analysis",
+            "search_keywords": ["trends", "analysis"]
+        }
     ],
-    "changes_explanation": "string: detailed explanation of all formatting changes made to the layout"
+    "FORMAT_REQUIREMENTS": "Must have two sections: one for brand sales and one for trends"
+}
+Output:
+{
+    "needed_changes": false
 }
 
-Rules:
-- You MUST modify the layout structure to fully comply with ALL FORMAT_REQUIREMENTS by:
-  - Adding new sections when required
-  - Removing sections that don't match requirements
-  - Merging or splitting sections as needed
-  - Reordering sections to match required structure
-  - Modifying section content and formatting
-  - Changing any aspect of sections to meet requirements
-- The modified_layout you return MUST exactly match the changes you describe in changes_explanation
-- If DOCUMENT_LAYOUT fully complies with FORMAT_REQUIREMENTS:
-  Return: { "follows_formatting": true }
-- If any formatting issues exist:
-  Return: {
-    "follows_formatting": false,
-    "modified_layout": [fully corrected layout matching your changes_explanation],
-    "changes_explanation": "explanation of changes that exactly match your modified_layout"
-  }
-
-Example:
+Example when changes needed:
 Input:
 {
     "DOCUMENT_LAYOUT": [
@@ -239,10 +251,9 @@ Input:
     ],
     "FORMAT_REQUIREMENTS": "Must have separate sections for each brand and a trends section"
 }
-
-Output if changes needed:
+Output:
 {
-    "follows_formatting": false,
+    "needed_changes": true,
     "modified_layout": [
         {
             "section_title": "Monster Energy Sales",
@@ -250,7 +261,7 @@ Output if changes needed:
             "search_keywords": ["monster", "sales"]
         },
         {
-            "section_title": "Bang Energy Sales", 
+            "section_title": "Bang Energy Sales",
             "description": "Sales data for Bang energy drinks",
             "search_keywords": ["bang", "sales"]
         },
@@ -261,11 +272,6 @@ Output if changes needed:
         }
     ],
     "changes_explanation": "Split single overview section into three sections: Monster sales, Bang sales, and overall trends"
-}
-
-Output if no changes needed:
-{
-    "follows_formatting": true
 }`
 
 
@@ -366,6 +372,111 @@ Output if no changes needed:
 }
     `
 
+
+    const reviseDocumentPrompt = `Return only a JSON object that analyzes if a document layout meets both formatting and content requirements. The response MUST strictly follow these output formats with no exceptions:
+
+    IF NO CHANGES ARE NEEDED:
+    You MUST return EXACTLY and ONLY this object:
+    {
+        "needed_changes": false
+    }
+    
+    IF CHANGES ARE NEEDED:
+    You MUST return an object with ALL these fields:
+    {
+        "needed_changes": true,
+        "modified_layout": [array of modified sections],
+        "changes_explanation": {
+            "formatting_changes": "explanation of formatting changes made",
+            "content_changes": "explanation of content changes made"
+        },
+        "requirements_verification": ["explanation of how each content requirement is addressed"]
+    }
+    
+    Input format:
+    1. DOCUMENT_LAYOUT: An array of section objects with the structure:
+        [
+            {
+                "section_title": "string: title of the section",
+                "description": "string: comprehensive explanation of section content",
+                "search_keywords": ["string: specific search term", ...]
+            },
+            ...
+        ]
+    2. FORMAT_REQUIREMENTS: A string containing specific formatting rules
+    3. CONTENT_REQUIREMENTS: A string containing specific content coverage requirements
+    
+    Rules:
+    - The response format MUST be exactly as specified above with no exceptions
+    - You MUST check BOTH formatting and content requirements
+    - When ALL requirements are already met, return ONLY { "needed_changes": false }
+    - When ANY changes are needed, return ALL fields described above
+    - NEVER include modified_layout, changes_explanation, or requirements_verification when needed_changes is false
+    - ALWAYS include all three fields when needed_changes is true
+    - The modified_layout must address BOTH formatting and content requirements
+    - requirements_verification must explicitly show how each content requirement is addressed
+    
+    Example when no changes needed:
+    Input:
+    {
+        "DOCUMENT_LAYOUT": [
+            {
+                "section_title": "Brand Sales",
+                "description": "Comprehensive sales data by brand with market analysis",
+                "search_keywords": ["brand", "sales", "analysis"]
+            },
+            {
+                "section_title": "Sales Trends",
+                "description": "Five-year trends analysis with competitive insights",
+                "search_keywords": ["trends", "forecast", "competition"]
+            }
+        ],
+        "FORMAT_REQUIREMENTS": "Must have two sections: one for brand sales and one for trends",
+        "CONTENT_REQUIREMENTS": "Must include sales data and competitive analysis"
+    }
+    Output:
+    {
+        "needed_changes": false
+    }
+    
+    Example when changes needed:
+    Input:
+    {
+        "DOCUMENT_LAYOUT": [
+            {
+                "section_title": "Sales Overview",
+                "description": "Basic sales data overview",
+                "search_keywords": ["sales", "overview"]
+            }
+        ],
+        "FORMAT_REQUIREMENTS": "Must have two sections: one for current sales and one for forecasting",
+        "CONTENT_REQUIREMENTS": "Must include 5-year forecast and competitive analysis"
+    }
+    Output:
+    {
+        "needed_changes": true,
+        "modified_layout": [
+            {
+                "section_title": "Current Sales Analysis",
+                "description": "Comprehensive analysis of current sales data including competitive positioning",
+                "search_keywords": ["sales", "analysis", "competition"]
+            },
+            {
+                "section_title": "Sales Forecast",
+                "description": "Detailed 5-year sales projections with market trend analysis",
+                "search_keywords": ["forecast", "projections", "trends"]
+            }
+        ],
+        "changes_explanation": {
+            "formatting_changes": "Split single overview section into two required sections: current sales and forecasting",
+            "content_changes": "Added competitive analysis to current sales section and created comprehensive 5-year forecast in new section"
+        },
+        "requirements_verification": [
+            "5-year forecast covered in dedicated Sales Forecast section",
+            "Competitive analysis integrated into Current Sales Analysis section",
+            "Two-section format requirement met with clear separation of current analysis and forecasting"
+        ]
+    }`
 
 const categorizeSourcePrompt = `You will be provided a large body of text. Your task is to return a string sufficiently describing what the content within the text is and contains. Be extremely detailed and thorough; cover all the info covered in the text, but do not explain its purpose. The end goal is categorize this text based on its description of its contents.
 

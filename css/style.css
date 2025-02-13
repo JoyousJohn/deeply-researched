@@ -214,10 +214,10 @@ body {
 }
 
 .name-text {
-    background-color: #272727;
+    background-color: #222;
     z-index: 1;
     padding: 0.5rem;
-    box-shadow: 0 0 2rem #272727;
+    box-shadow: 0 0 2rem #222;
 }
 
 .logo {
@@ -267,7 +267,7 @@ body {
     margin: 3rem 7rem;
     line-height: 1.7;
     white-space: pre-wrap;
-    word-wrap: break-word;
+    word-wrap: anywhere;
 }
 
 
