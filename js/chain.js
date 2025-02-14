@@ -78,7 +78,7 @@ function nextPhase() {
             {role: "user", content: "The user's research query is: " + input},
             {role: "assistant", content: "{"}
         ]
-        newActivity('Following up', undefined, undefined, true);
+        newActivity('Discerning the task', undefined, undefined, true);
     
     }  else if (phase === 'refiningQuestionsAsked') {
 

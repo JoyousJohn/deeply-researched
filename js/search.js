@@ -652,6 +652,9 @@ async function categorizeSource(index, source) {
     ]
 
     try {
+
+        const timerId = $(`.token-count[data-activity-url="${source.url}"]`).attr('data-timer-id');
+
         const data = await Promise.race([
             sendRequestToDecoder(messages_payload),
             new Promise((_, reject) => setTimeout(() => {
@@ -659,6 +662,8 @@ async function categorizeSource(index, source) {
                 reject(new Error("Request timed out")); // Reject the promise
             }, 30000)) // 30 seconds timeout
         ]);
+
+        addTokenUsageToActivity(data.usage, source.url, timerId)
 
         // Proceed to parse data only if it exists
         if (data) {
