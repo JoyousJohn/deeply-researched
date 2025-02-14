@@ -729,3 +729,46 @@ textarea::-webkit-scrollbar {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
 }
+
+.dropdown {
+    position: relative;
+    background-color: rgb(35, 35, 35);
+    color: white;
+    font-size: 1.7rem;
+    cursor: pointer;
+    display: inline-block;
+    user-select: none;
+}
+
+.dropdown-selected {
+    padding: 0.8rem 2rem;
+    border: 2px solid #464646;
+    border-radius: 0.5rem;
+    transition: 100ms;
+}
+
+.dropdown-selected:hover {
+    background-color: rgb(92, 81, 216);
+}
+
+.dropdown-options {
+    position: absolute;
+    background-color: rgb(35, 35, 35);
+    width: 100%;
+    z-index: 1;
+    display: none;
+    box-sizing: border-box;
+    border: 2px solid #464646;
+    border-radius: 0.5rem;
+    text-align: center;
+}
+
+.dropdown-option {
+    padding: 1rem 1.5rem;
+    transition: background-color 100ms;
+    border-radius: 0.5rem;
+}
+
+.dropdown-option:hover {
+    background-color: #456fbc;
+}

@@ -1,11 +1,10 @@
-const maxBranches = 1;
-
 const defaultSettings = {
     'braveKey': null,
     'reasoningModelId': '',
     'reasoningBase': null,
     'reasoningKey': null,
     'statsEnabled': true,
+    'maxBranches': 1,
 
     'selectedDecoderModelId': '1',
 
@@ -124,23 +123,28 @@ $(document).ready(function() {
     }
     settings = JSON.parse(localStorage.getItem('settings'));
 
-    // Set initial state of toggle based on saved settings
+    maxBranches = settings.maxBranches;
+
     $('#stats-toggle').prop('checked', settings.statsEnabled || false);
     if (settings.statsEnabled) {
         $('.overall-tokens').show();
     }
 
-    $('.decoder-bullet-wrapper').click(function() { // set event on initial element since other event handlers for others are added when cloned
-        selectModel(1)
-        modelSelectionPopup();
-    })
+    const maxBranchesValue = settings.maxBranches;
+    $('.dropdown-selected').text(maxBranchesValue); 
+    $(`.dropdown-option[data-value="${maxBranchesValue}"]`).addClass('selected');
 
-    setGlobalSelectedModelVars(settings['selectedDecoderModelId'])
+    $('.decoder-bullet-wrapper').click(function() {
+        selectModel(1);
+        modelSelectionPopup();
+    });
+
+    setGlobalSelectedModelVars(settings['selectedDecoderModelId']);
     populateInputs(true);
-    selectModel(settings['selectedDecoderModelId'])
+    selectModel(settings['selectedDecoderModelId']);
 
     $('.confirm-button').on('click', function() {
-        confirmSettings($(this))
+        confirmSettings($(this));
     });
 
     $('#stats-toggle').change(function() {
@@ -155,6 +159,24 @@ $(document).ready(function() {
         }
     });
 
+    $('.dropdown-selected').on('click', function() {
+        $(this).siblings('.dropdown-options').toggle(); 
+    });
+
+    $('.dropdown-option').on('click', function() {
+        const selectedValue = $(this).text(); 
+        $(this).closest('.dropdown').find('.dropdown-selected').text(selectedValue);
+        $(this).closest('.dropdown-options').hide();
+
+        settings.maxBranches = parseInt($(this).data('value')); 
+        localStorage.setItem('settings', JSON.stringify(settings));
+    });
+
+    $(document).on('click', function(event) {
+        if (!$(event.target).closest('.dropdown').length) {
+            $('.dropdown-options').hide();
+        }
+    });
 })
 
 $(document).keydown(function(event) {

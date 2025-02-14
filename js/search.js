@@ -236,7 +236,8 @@ async function checkIfSourceFulfillsDescription(candidateSources, requiredDescri
 
     addTokenUsageToActivity(data.usage, undefined, latestTimerId());
 
-    // If the current sources fulfill the requirement or maximum branch depth is reached
+    const maxBranches = settings.maxBranches
+
     if (response.fulfills === true || branchHistory.length === maxBranches) {
         if (branchHistory.length === maxBranches) {
             // console.log("Fulfilled by context");
