@@ -166,20 +166,16 @@ CONTENT_REQUIREMENTS: [String listing mandatory content elements]
 
 Example format: (no backticks)
 
-{"sections": [
-        {
-            "section_title": "string: professional title 1 of the section",
-            "description": "string: comprehensive explanation of how to implement all requirements from the three inputs for this section",
-            "search_keywords": ["string: specific search term 1 from the inputs", "string: specific search term 2 from the inputs"]
-        },
-        {
-            "section_title": "string: professional title 2 of the section",
-            "description": "string: comprehensive explanation of how to implement all requirements from the three inputs for this section",
-            "search_keywords": ["string: specific search term 1 from the inputs", "string: specific search term 2 from the inputs"]
-        }
-    ]
-}
-    
+[{"section_title": "string: professional title 1 of the section",
+        "description": "string: comprehensive explanation of how to implement all requirements from the three inputs for this section",
+        "search_keywords": ["string: specific search term 1 from the inputs", "string: specific search term 2 from the inputs"]
+    },
+    {
+        "section_title": "string: professional title 2 of the section",
+        "description": "string: comprehensive explanation of how to implement all requirements from the three inputs for this section",
+        "search_keywords": ["string: specific search term 1 from the inputs", "string: specific search term 2 from the inputs"]
+    }
+]
 `
 
 const reviseFormattingPrompt = `Return only a JSON object that analyzes if a document layout needs modifications to meet specific formatting requirements. The response MUST strictly follow these output formats with no exceptions:
@@ -570,6 +566,61 @@ Before finalizing response:
 - Check that the source_ids list is properly prioritized
 - Ensure the source_ids array is no more than 20 elements long
 `
+
+const generateMissingInfoPrompt = `Task: Analyze a research section description and generate a specific description of required information and a targeted search query to find that information. The output should be precise enough to guide effective information gathering while being concise.
+
+Input:
+- description: String describing the content needed for a paper section.
+
+Guidelines for Identifying Required Information:
+- Focus on identifying information that:
+  * Addresses core topics and concepts
+  * Covers key methodological aspects
+  * Includes essential empirical evidence
+  * Provides critical theoretical frameworks
+  * Offers necessary context or background
+  * Represents foundational work
+  * Presents authoritative perspectives
+
+Also consider information needs that:
+  * Approach the topic from different angles
+  * Provide supporting evidence
+  * Offer complementary perspectives
+  * Present alternative interpretations
+
+Evaluation Process:
+1. First pass: Identify core information requirements
+2. Second pass: Evaluate completeness and specificity
+3. Third pass: Refine and focus description
+4. Final pass: Review and confirm precision
+
+Requirements:
+1. Return a JSON object containing:
+    - required_info_description: Brief text listing the needed information
+    - search_term: Search engine query to find this information
+
+Important formatting rules:
+- Do not return any text outside of the JSON object
+- Do not format or prettify your response
+- Return your JSON object response in raw-text
+- The description should be one continuous string without line breaks
+- Do not wrap your response in a json code block
+- Do not wrap your response with backticks
+- Do not return any notes or comments
+
+Important: The required_info_description must complete this sentence: "This text is missing... <missing_information>"
+
+Example response:
+{
+    "required_info_description": "string",
+    "search_term": "string"
+}
+
+Before finalizing response:
+- Verify the description captures critical information needs
+- Ensure comprehensive coverage of key aspects
+- Confirm specificity and clarity
+- Check that the search term is properly focused`
 
 const selectOnlySourcesPrompt = `Task: Analyze a research section description and identify the most relevant information sources (maximum 20) from the provided dictionary, prioritizing the most critical and directly relevant sources.
 

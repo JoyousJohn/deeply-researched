@@ -93,6 +93,13 @@ $(document).on('keydown', function(event) {
     }
 })
 
+$(document).on('keydown', function(event) {
+    const $textarea = $('textarea');
+    if ($textarea.is(':focus') && event.key === 'Escape') {
+        $textarea.blur();
+        $('.search-wrapper').css('background-color', 'rgb(73, 73, 73)');
+    }
+});
 
 $('.search-wrapper').click(function(event) {
     if (searching) { return; }

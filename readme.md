@@ -30,6 +30,7 @@ Deeply Researched has demonstrated comparable results to Deep Research while mai
 - View live cost, runtime, model request, and token breakdowns
 - Limit specificity to your likings
 - 429 error handling (thus compatible with free, rate-limited providers!)
+- Self-healing
 
 ## Technical Architecture
 

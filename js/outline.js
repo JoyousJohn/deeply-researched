@@ -47,9 +47,15 @@ function addPlanToOutline() {
 
         $('.outline-sections').append($outlineSection)
 
+
         $('.iteration-title').text(`Iteration ${planNum}/${planNum}`).show();
 
     });
+
+    if (Object.keys(planChanges).length !== 0) {
+        $(`.iteration-why`).append($(`<div data-plan-number="${planNum}" style="white-space: pre-wrap;"><span>${planChanges.formatting_changes}\n\n${planChanges.content_changes}</span>
+        </div>`));
+    }
 
 }
 

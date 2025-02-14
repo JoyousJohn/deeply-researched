@@ -64,30 +64,38 @@ async function beginSearches() {
         $('.current-search-desc').text(`Researching ${section.section_title}`)
         $('.current-search-keywords').text(`Searching ${section.search_keywords}...`)
 
-        let links;
-        if (count === 1) {
+        // let links;
+        // if (count === 1) {
 
-            newActivity('Getting relevant links for: ' + section.section_title);
+        //     newActivity('Getting relevant links for: ' + section.section_title);
 
-            let linksData = await getLinks(section.search_keywords);
-            links = linksData.result;
+        //     let linksData = await getLinks(section.search_keywords);
+        //     links = linksData.result;
 
-            if (links === 429) {
-                newActivity('Too many requests to Google search.')
-                $('.activity-working').removeClass('activity-working').css('color', '#ff3c3c')
-                return;
-            }
+        //     if (links === 429) {
+        //         newActivity('Too many requests to Google search.')
+        //         $('.activity-working').removeClass('activity-working').css('color', '#ff3c3c')
+        //         return;
+        //     }
 
-            newActivity(`Searching ${links.length} links`);
+        //     newActivity(`Searching ${links.length} links`);
 
-            appendURLS(links)
-            setPhase('fetchingLinks');
+        //     appendURLS(links)
+        //     setPhase('fetchingLinks');
 
-            await getTexts(links);
+        //     await getTexts(links);
 
-        }
+        // }
 
+
+        // let relevantAndNeededSources;
+        // if (count !== 0) {
         let relevantAndNeededSources = await getRelevantAndNeededSources(section.description, false)
+        // } else {
+        //     relevantAndNeededSources = {
+        //         'required_info_description': 
+        //     }
+        // }
 
         // console.log(relevantAndNeededSources)
 
@@ -364,8 +372,10 @@ async function getRelevantAndNeededSources(sectionDescription, sources_only) {
     let prompt;
     if (sources_only) {
         prompt = selectOnlySourcesPrompt;
-    } else {
+    } else if (!sources_only && Object.keys(sources).length > 0) {
         prompt = selectSourcesPrompt
+    } else if (!sources && Object.keys(sources).length === 0) {
+        prompt = generateMissingInfoPrompt;
     }
 
     const messages_payload = [
@@ -587,9 +597,6 @@ async function analyzeSearch(searchData, section) {
     })
 
     // console.log(content);
-    // newModelMessageElm(true);
-    // addToModalMessage(section_title)
-    // addToModalMessasge('\n\n ' + content);
     // newActivity('Drafted the section');
     addTokenUsageToActivity(usage, undefined, latestTimerId());
     // add logic to confirm and refine the draft here!
@@ -644,39 +651,50 @@ async function categorizeSource(index, source) {
         ` }
     ]
 
-    const data = await sendRequestToDecoder(messages_payload);
-    if (!data) {
-        handleError(source.url, url);
-        return; // Exit the function if data is undefined
-    }
-    const timerId = $(`.token-count[data-activity-url="${source.url}"]`).attr('data-timer-id');
-    addTokenUsageToActivity(data.usage, source.url, timerId)
-    let content;
     try {
-        content = JSON.parse(data.choices[0].message.content);
-        // Move these lines inside the try block so they only execute on success
-        addToModalMessage(`\n\n${url} contains ${content.description.charAt(0).toLowerCase() + content.description.slice(1)}`);
-        sources[index]['description'] = content.description;
-        return content.description;
+        const data = await Promise.race([
+            sendRequestToDecoder(messages_payload),
+            new Promise((_, reject) => setTimeout(() => {
+                handleError(source.url, url, "Request timed out"); // Specify timeout error
+                reject(new Error("Request timed out")); // Reject the promise
+            }, 30000)) // 30 seconds timeout
+        ]);
 
+        // Proceed to parse data only if it exists
+        if (data) {
+            try {
+                let content = JSON.parse(data.choices[0].message.content);
+                // Move these lines inside the try block so they only execute on success
+                addToModalMessage(`\n\n${url} contains ${content.description.charAt(0).toLowerCase() + content.description.slice(1)}`);
+                sources[index]['description'] = content.description;
+                return content.description;
+
+            } catch (jsonError) {
+                handleError(source.url, url, "JSON parsing failed"); // Specify JSON parsing error
+                console.log('JSON content:', data.choices[0].message.content);
+            }
+        } else {
+            // Handle the case where data is null or undefined
+            console.error("No data received from sendRequestToDecoder");
+            handleError(source.url, url, "No data received"); // Specify no data error
+        }
     } catch (error) {
-        handleError(source.url, url);
-        console.log('JSON content:', data.choices[0].message.content);
+        console.error('Error occurred:', error);
+        // Handle any other errors that may occur
     }
 }
 
-function handleError(sourceUrl, url) {
-    console.error("No data received from sendRequestToDecoder or failed to parse JSON");
+function handleError(sourceUrl, url, errorType) {
+    console.error(`${errorType} for website: ${url} (Source URL: ${sourceUrl})`);
     $(`div.activity-errors[data-activity-link-url="${sourceUrl}"]`)
         .removeAttr('data-activity-link-url')
-        .text("Failed to parse");
+        .text(errorType);
     $(`div.activity-link-status[data-activity-link-url="${sourceUrl}"] > div`)
         .parent()
         .removeAttr('data-activity-link-url')
         .find('div')
         .css('background-color', 'red');
     globalProcessedLinks.delete(sourceUrl);
-    console.log(`Failed to parse JSON for website: ${url} (Source URL: ${sourceUrl})`);
 }
 
 async function getTexts(links) {

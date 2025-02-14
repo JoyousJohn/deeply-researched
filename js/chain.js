@@ -10,9 +10,14 @@ let refinedFormattingRequirements;
 let refinedContentRequirements;
 let input;
 
+const phasePrefixAdditions = {
+    'createSections': '[{"section_title":'
+}
+
 let questions;
 
 let plan = [];
+let planChanges = {}
 let priorPlans = [];
 let requirements = {};
 let remainingRequirements = {};
@@ -60,7 +65,7 @@ function nextPhase() {
         payload['messages'] = [
             {role: "system", content: isResearchTopic},
             {role: "user", content: "The user's query is: " + input},
-            {role: "assistant", content: "{"}
+            {role: "assistant", content: '{'}
         ]
         newActivity('Understanding the request', undefined, undefined, true)
         stats['start_time'] = new Date();
@@ -73,7 +78,7 @@ function nextPhase() {
             {role: "user", content: "The user's research query is: " + input},
             {role: "assistant", content: "{"}
         ]
-        newActivity('Detecting any ambiguity', undefined, undefined, true);
+        newActivity('Following up', undefined, undefined, true);
     
     }  else if (phase === 'refiningQuestionsAsked') {
 
@@ -100,7 +105,7 @@ function nextPhase() {
                 FORMATTING_REQUIREMENTS: ${refinedFormattingRequirements}
                 CONTENT_REQUIREMENTS: ${refinedContentRequirements}`
             },
-            {role: 'assistant', content:'{'}
+            {role: 'assistant', content:'[{"section_title":'}
         ]
 
         newActivity('Creating a search plan', undefined, undefined, true);
@@ -140,7 +145,7 @@ function nextPhase() {
             {role: "assistant", content: "{"}
         ]
 
-        newActivity('Confirming content adherence', undefined, undefined, true);
+        newActivity('Confirming document adherence', undefined, undefined, true);
     }
 
     makeRequest(payload);
@@ -174,43 +179,69 @@ function makeRequest(payload) {
     .then(fullResponse => {
         // console.log('Full response received:', fullResponse);
 
-        let context;
+        let content;
         try {
-            console.log(fullResponse.choices[0].message.content)
+            content = fullResponse.choices[0].message.content
+            console.log(content)
 
-            if (phase === 'createSections' || phase === 'refineTaskWithAnsweredQuestions' || phase === 'reviseFormatting' || phase === 'reviseContent') {
-                fullResponse.choices[0].message.content = fullResponse.choices[0].message.content.replace(/\s+/g, ' ')
-            }
-
-            let content = fullResponse.choices[0].message.content.trim();
-            if (content.charAt(content.length - 1) !== '}') {
-                const lastClosingBraceIndex = content.lastIndexOf('}');
-                console.log(content)
-                content = content.substring(0, lastClosingBraceIndex + 1);
-                console.log(content)
-            }
-            if (content.charAt(0) !== '{') {
-                context = '{' + content;
-                console.log('adding bracket, new json:')
-                console.log(context)
-                context = JSON.parse(context);
-            } else {
-                context = JSON.parse(content.replace('```json', '').replace('```', ''));
-            }
-            
+            content = JSON.parse(content)
+                     
         } catch (e) {
-            console.error("Error parsing JSON response:", e);
-            console.log("Full response JSON:", fullResponse);
-            newActivity("Error in chaining.")
-            throw e;
+
+            try {
+                // if (phase === 'createSections' || phase === 'refineTaskWithAnsweredQuestions' || phase === 'reviseFormatting' || phase === 'reviseContent' || phase === 'refiningQuestionsAsked') {
+                //     content = content.replace(/\s+/g, ' ')
+                // }
+    
+                content = content.trim().replace('```json', '').replaceAll('```', '').replaceAll('\n', '').replaceAll(']"', ']');
+
+                content = content.replace(/^\s+/, '');
+
+                console.log('content after trimming stufs: ', content)
+
+                if (phase !== 'createSections') {
+
+                    if (content.charAt(content.length - 1) !== '}') {
+                        const lastClosingBraceIndex = content.lastIndexOf('}');
+                        console.log(content)
+                        console.log('last char wasn not closing brace, splitting at last closing closing brace...')
+                        content = content.substring(0, lastClosingBraceIndex + 1);
+                        console.log(content)
+                    }
+                    if (content.charAt(0) !== '{') {
+                        content = '{' + content;
+                        console.log('adding bracket, new json:')
+                        console.log(content)
+                    }
+                } 
+                
+                else if (phase === 'createSections') {
+                    // Check if content starts with the prefix, if not, prepend it
+                    if (!content.startsWith(phasePrefixAdditions.createSections)) {
+                        console.log('adding prefix to content')
+                        content = phasePrefixAdditions.createSections + content;
+                    }
+                    console.log(content)
+                }
+    
+                content = JSON.parse(content);
+
+            } catch {
+
+                console.error("Error parsing JSON response:", e);
+                console.log("Full response JSON:", fullResponse);
+                newActivity("Error in chaining.")
+                throw e;
+            }
+
         }
         const usage = fullResponse.usage
-        // console.log("Content: ", context)
+        // console.log("Content: ", content)
     
         if (phase === 'refiningRequest') {
 
-            const preamble = context.preamble
-            questions = context.questions
+            const preamble = content.preamble
+            questions = content.questions
 
             let msgStr = preamble + '\n'
             questions.forEach((question, index) => {
@@ -228,7 +259,7 @@ function makeRequest(payload) {
 
             addTokenUsageToActivity(usage, undefined, latestTimerId())
 
-            if (context.is_valid_request === true) {
+            if (content.is_valid_request === true) {
                 // alert(Object.keys(activityTimers)[0])
                 newActivity('Request confirmed');
                 setPhase('refiningRequest');
@@ -240,7 +271,7 @@ function makeRequest(payload) {
                 newActivity('Prompt was not researchable');
                 newActivity('Awaiting new instructions');
                 setPhase('waitingForInput');
-                addToModalMessage("I apologize, but I cannot proceed with this request. " + context.explanation);
+                addToModalMessage("I apologize, but I cannot proceed with this request. " + content.explanation);
                 enableBar();
             }
 
@@ -256,16 +287,16 @@ function makeRequest(payload) {
 
         } else if (phase === 'refineTaskWithAnsweredQuestions') {
 
-            refinedRequest = context.query;
-            refinedFormattingRequirements = context.formatting_requirements;
-            refinedContentRequirements = context.content_requirements
+            refinedRequest = content.query;
+            refinedFormattingRequirements = content.formatting_requirements;
+            refinedContentRequirements = content.content_requirements
 
             newModelMessageElm(true);
             addToModalMessage('I refined the query: ' + refinedRequest)
             addToModalMessage('\n\nI will follow these formatting requirements: ' + refinedFormattingRequirements)
             addToModalMessage('\n\nI will include these content requirements: ' + refinedContentRequirements)
 
-            addQueryToOutline(context)
+            addQueryToOutline(content)
 
             addTokenUsageToActivity(usage, undefined, latestTimerId())
 
@@ -275,7 +306,7 @@ function makeRequest(payload) {
 
         } else if (phase === 'createSections') {
 
-            plan = context.sections;
+            plan = content;
             const sectionTitles = plan.map(section => section.section_title);
             // console.log(sectionTitles)
             // const sectionTitlesList = sectionTitles.join(', ').replace(/, ([^,]*)$/, ', and $1');
@@ -307,9 +338,9 @@ function makeRequest(payload) {
 
             addTokenUsageToActivity(usage, undefined, latestTimerId())
 
-            const needed_changes = context.needed_changes
+            const needed_changes = content.needed_changes
 
-            console.log(context)
+            console.log(content)
 
             if (!needed_changes) {
                 setPhase('reviseContent')
@@ -318,10 +349,9 @@ function makeRequest(payload) {
             } else {
                 newActivity('Modified layout to follow formatting')
                 // newModelMessageElm(true)
-                addToModalMessage('\n\nI made some formatting changes to the layout: ' + context.changes_explanation)
+                addToModalMessage('\n\nI made some formatting changes to the layout: ' + content.changes_explanation)
                 priorPlans.push(plan)
-                plan = context.modified_layout
-                addPlanToOutline(plan)
+                plan = content.modified_layout
                 nextPhase(); // iterate again
             }
 
@@ -329,18 +359,18 @@ function makeRequest(payload) {
 
             addTokenUsageToActivity(usage, undefined, latestTimerId())
 
-            const meets_requirements = context.meets_requirements
+            const meets_requirements = content.meets_requirements
 
-            console.log(context)
+            console.log(content)
 
             if (meets_requirements) {
                 newActivity('Layout content conforms with requirements')
                 beginSearches();
             } else {
                 newActivity('Modified layout to follow content requirements')
-                addToModalMessage('\n\nI modified the layout to fulfill all content requirements: ' + context.changes_explanation)
+                addToModalMessage('\n\nI modified the layout to fulfill all content requirements: ' + content.changes_explanation)
                 priorPlans.push(plan)
-                plan = context.modified_outline
+                plan = content.modified_outline
                 addPlanToOutline(plan)
                 nextPhase(); // iterate again
             }
@@ -349,19 +379,20 @@ function makeRequest(payload) {
 
             addTokenUsageToActivity(usage, undefined, latestTimerId())
 
-            const needed_changes = context.needed_changes
+            const needed_changes = content.needed_changes
 
-            console.log(context)
+            console.log(content)
 
             if (!needed_changes) {
                 newActivity('Layout conforms with document requirements')
                 beginSearches();
             } else {
                 newActivity('Modified layout to follow document requirements')
-                addToModalMessage('\n\nI modified the layout to fulfill formatting requirements: ' + context.changes_explanation.formatting_changes)
-                addToModalMessage('\n\nI modified the layout to fulfill content requirements: ' + context.changes_explanation.content_changes)
+                addToModalMessage('\n\nI modified the layout to fulfill formatting requirements: ' + content.changes_explanation.formatting_changes)
+                addToModalMessage('\n\nI modified the layout to fulfill content requirements: ' + content.changes_explanation.content_changes)
                 priorPlans.push(plan)
-                plan = context.modified_layout
+                plan = content.modified_layout
+                planChanges = content.changes_explanation
                 addPlanToOutline(plan)
                 nextPhase(); // iterate again
             }
@@ -428,31 +459,31 @@ function makeRequest(payload) {
         rpm = overallTokens['requests']
     }
 
-    let workingContext = '';
+    let workingcontent = '';
     let totalWords = 0;
 
-    let memoryMapContext = ''
+    let memoryMapcontent = ''
     let memoryMapWordsLength = 0;
 
     if (Object.keys(sources).length !== 0) {
-        workingContext = 0;
+        workingcontent = 0;
         Object.values(sources).forEach(source => {
-            workingContext += source['length'];
+            workingcontent += source['length'];
             totalWords += source['text'].split(' ').length
 
             if (source['description']) {
-                memoryMapContext += source['description']
+                memoryMapcontent += source['description']
                 memoryMapWordsLength += source['description'].split(' ').length
             }
         })
-        workingContext = workingContext.toLocaleString()
-        workingContext = '<br>Source context: ' + workingContext + ` chars / ${totalWords.toLocaleString()} words`
+        workingcontent = workingcontent.toLocaleString()
+        workingcontent = '<br>Source content: ' + workingcontent + ` chars / ${totalWords.toLocaleString()} words`
 
-        memoryMapContext =  `<br> Memory map: ` + memoryMapContext.length.toLocaleString() + ` chars / ${memoryMapWordsLength.toLocaleString()} words`
+        memoryMapcontent =  `<br> Memory map: ` + memoryMapcontent.length.toLocaleString() + ` chars / ${memoryMapWordsLength.toLocaleString()} words`
 
     }
 
-    $('.overall-tokens').html(`${overallTokens['input'].toLocaleString()} / ${overallTokens['output'].toLocaleString()} / ${(overallTokens['input'] + overallTokens['output']).toLocaleString()} total tokens <br>${cost} ${overallTokens['requests']} request${overallTokens['requests'] !== 1 ? 's' : ''} / <span class="rpm">${rpm}</span> RPM${workingContext}${memoryMapContext}`)
+    $('.overall-tokens').html(`${overallTokens['input'].toLocaleString()} / ${overallTokens['output'].toLocaleString()} / ${(overallTokens['input'] + overallTokens['output']).toLocaleString()} total tokens <br>${cost} ${overallTokens['requests']} request${overallTokens['requests'] !== 1 ? 's' : ''} / <span class="rpm">${rpm}</span> RPM${workingcontent}${memoryMapcontent}`)
 
 }
 
