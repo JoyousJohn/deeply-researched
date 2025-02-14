@@ -480,14 +480,16 @@ Example of valid response:
 }
 `
 
-const selectSourcesPrompt = `Task: Analyze a research section description and identify the most relevant information sources (maximum 20) from the provided dictionary, prioritizing the most critical and directly relevant sources while maintaining thoroughness in selection. Return a JSON object with prioritized source IDs and/or missing information details.
+function getSelectSourcesPrompt() {
+    const maxSources = settings.maxSources; // Get the current maxSources value from settings
+    return `Task: Analyze a research section description and identify the most relevant information sources (maximum ${maxSources}) from the provided dictionary, prioritizing the most critical and directly relevant sources while maintaining thoroughness in selection. Return a JSON object with prioritized source IDs and/or missing information details.
 
 Inputs:
 1. description: String describing the content needed for a paper section.
 2. sources: Dictionary where keys are numerical source IDs and values are source content descriptions.
 
 Source Selection Guidelines:
-- Select up to 15 of the most relevant sources, prioritizing those that:
+- Select up to ${maxSources} of the most relevant sources, prioritizing those that:
   * Directly address the core topic
   * Provide substantial coverage of key aspects
   * Contain unique or critical information
@@ -514,14 +516,14 @@ Evaluation Process:
 
 Requirements:
 1. Return a JSON object containing:
-    - source_ids: List of up to 15 most relevant source IDs (if any)
+    - source_ids: List of up to ${maxSources} most relevant source IDs (if any)
     - Conditionally include:
-     * required_info_description: Brief text listing the missing information (if sources are insufficient)
-     * search_term: Search engine query to find missing information (if sources are insufficient)
+      * required_info_description: Brief text listing the missing information (if sources are insufficient)
+      * search_term: Search engine query to find missing information (if sources are insufficient)
 2. Response logic:
-   - Fully covered: Return only source_ids with most relevant sources (max 20)
-   - Partially covered: Return all three keys with prioritized source_ids list
-   - No coverage: Return only required_info_description and search_term
+    - Fully covered: Return only source_ids with most relevant sources (max ${maxSources})
+    - Partially covered: Return all three keys with prioritized source_ids list
+    - No coverage: Return only required_info_description and search_term
 
 Important formatting rules:
 - Do not return any text outside of the JSON object
@@ -536,20 +538,21 @@ Important: Do *NOT* add any comments.
 
 Example response:
 {
-    "source_ids": ["SRC_1", "SRC_2", "SRC_3", "SRC_4", "SRC_7", "SRC_9"], (List of most relevant source IDs, maximum of 20)
+    "source_ids": ["SRC_1", "SRC_2", "SRC_3", "SRC_4", "SRC_7", "SRC_9"], (List of most relevant source IDs, maximum of ${maxBranches})
     "required_info_description": "string", (Only include if information is missing)
     "search_term": "string" (Only include if information is missing)
 }
 
-Impotant: The missing_information sentence should be complete this sentence: "This text is missing... <missing_information>"!
+Important: The missing_information sentence should be complete this sentence: "This text is missing... <missing_information>"!
 
 Before finalizing response:
 - Verify that the most critical sources are included
 - Ensure sources provide comprehensive coverage of key aspects
 - Confirm selection represents the most important perspectives
 - Check that the source_ids list is properly prioritized
-- Ensure the source_ids array is no more than 15 elements long
-`
+- Ensure the source_ids array is no more than ${maxSources} elements long
+`;
+}
 
 const generateMissingInfoPrompt = `Task: Analyze a research section description and generate a specific description of required information and a targeted search query to find that information. The output should be precise enough to guide effective information gathering while being concise.
 

@@ -374,7 +374,7 @@ async function getRelevantAndNeededSources(sectionDescription, sources_only) {
     if (sources_only) {
         prompt = selectOnlySourcesPrompt;
     } else if (!sources_only && Object.keys(sources).length > 0) {
-        prompt = selectSourcesPrompt
+        prompt = getSelectSourcesPrompt()
     } else if (!sources_only && Object.keys(sources).length === 0) {
         prompt = generateMissingInfoPrompt;
     }

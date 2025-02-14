@@ -5,6 +5,7 @@ const defaultSettings = {
     'reasoningKey': null,
     'statsEnabled': true,
     'maxBranches': 1,
+    'maxSources': 5,
 
     'selectedDecoderModelId': '1',
 
@@ -34,6 +35,7 @@ function populateInputs(isInitial) {
             modelElement.find(`.api-key-input[data-key="${key}"]`).val(modelValues[key]); // Find inputs within the model element
         }
     });
+    $('#max-sources').val(settings.maxSources);
 }
 
 function confirmSettings(elm) {
@@ -175,6 +177,48 @@ $(document).ready(function() {
     $(document).on('click', function(event) {
         if (!$(event.target).closest('.dropdown').length) {
             $('.dropdown-options').hide();
+        }
+    });
+
+    let lastValidValue = 10;
+
+    $('#max-sources').on('input', function() {
+        this.value = this.value.replace(/[^0-9]/g, ''); // Remove non-numeric characters
+        const value = parseInt(this.value);
+
+        // Check if the value is valid (between 10 and 20)
+        if (this.value !== '' && (value < 10 || value > 20)) {
+            $(this).addClass('error'); // Add error class if invalid
+        } else {
+            $(this).removeClass('error'); // Remove error class if valid
+            if (!isNaN(value)) {
+                lastValidValue = value; // Update last valid value
+                settings.maxSources = value; // Update settings
+                localStorage.setItem('settings', JSON.stringify(settings)); // Save to local storage
+            }
+        }
+    });
+    
+    $('#save-max-sources').click(function(event) {
+
+        const maxSourcesValue = $('#max-sources').val();
+        const savedMessage = $('.saved-message');
+
+        if (maxSourcesValue >= 10 && maxSourcesValue <= 20) {
+            settings.maxSources = parseInt(maxSourcesValue);
+            localStorage.setItem('settings', JSON.stringify(settings));
+
+            savedMessage.text('Max sources saved successfully!').css('background-color', '#28b128').css('color', 'white').slideDown('fast');
+
+            setTimeout(function() {
+                savedMessage.slideUp('fast');
+            }, 2000);
+        } else {
+            savedMessage.text('Please enter a value between 10 and 20.').css('background-color', 'red').css('color', 'white').slideDown('fast');
+
+            setTimeout(function() {
+                savedMessage.slideUp('fast');
+            }, 2000);
         }
     });
 })

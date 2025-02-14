@@ -135,19 +135,27 @@
             <div>
                 <div class="text-3rem bold">Settings</div>
 
-                <div class="flex gap-x-1rem items-center">
-                    <div class="" style="color: rgb(214, 214, 214); font-size: 1.8rem;">Max search branches: </div>
-                    <div class="flex items-center">
-                        <div class="dropdown">
-                            <div class="dropdown-selected">Select branches:</div>
-                            <div class="dropdown-options">
-                                <div class="dropdown-option" data-value="0">0</div>
-                                <div class="dropdown-option" data-value="1">1</div>
-                                <div class="dropdown-option" data-value="2">2</div>
-                                <div class="dropdown-option" data-value="3">3</div>
-                                <div class="dropdown-option" data-value="4">4</div>
+                <div class="flex flex-col gap-y-1rem">
+                    <div class="settings-grid">
+                        <div class="" style="color: rgb(214, 214, 214); font-size: 1.8rem;">Max search branches: </div>
+                        
+                        <div class="flex items-center">
+                            <div class="dropdown">
+                                <div class="dropdown-selected">Select branches:</div>
+                                <div class="dropdown-options">
+                                    <div class="dropdown-option" data-value="0">0</div>
+                                    <div class="dropdown-option" data-value="1">1</div>
+                                    <div class="dropdown-option" data-value="2">2</div>
+                                    <div class="dropdown-option" data-value="3">3</div>
+                                    <div class="dropdown-option" data-value="4">4</div>
+                                </div>
                             </div>
                         </div>
+                        <div></div>
+
+                        <div class="" style="color: rgb(214, 214, 214); font-size: 1.8rem;">Max section sources (10-20): </div>
+                        <input type="text" class="api-key-input" id="max-sources" placeholder="" data-key="maxSources" inputmode="numeric" style="margin-top: 0;">
+                        <button id="save-max-sources" class="confirm-max-sources" style="margin-top: 0;">Save</button>
                     </div>
                 </div>
             </div>

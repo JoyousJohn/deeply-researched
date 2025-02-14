@@ -425,7 +425,7 @@ textarea::-webkit-scrollbar {
     opacity: 0.5;
 }
 
-.confirm-button {
+.confirm-button, .confirm-max-sources {
     background-color: rgb(220, 220, 220);
     border: 2px solid rgb(220, 220, 220);
     color: rgb(27, 27, 27);
@@ -437,7 +437,7 @@ textarea::-webkit-scrollbar {
     transition: 100ms;
 }
 
-.confirm-button:hover, .add-model:hover {
+.confirm-button:hover, .confirm-max-sources:hover, .add-model:hover {
     background-color: rgb(69, 59, 255);
     border-color: rgb(69, 59, 255);
     color: white;
@@ -738,6 +738,7 @@ textarea::-webkit-scrollbar {
     cursor: pointer;
     display: inline-block;
     user-select: none;
+    text-align: center;
 }
 
 .dropdown-selected {
@@ -771,4 +772,20 @@ textarea::-webkit-scrollbar {
 
 .dropdown-option:hover {
     background-color: #456fbc;
+}
+
+.settings-grid {
+    display: grid;
+    grid-template-columns: max-content 0.5fr min-content;
+    gap: 1rem;
+    width: max-content;
+    align-items: center;
+}
+
+.dropdown, .api-key-input {
+    width: 100%;
+}
+
+#max-sources {
+    text-align: center;
 }
