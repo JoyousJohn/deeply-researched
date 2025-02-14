@@ -110,6 +110,7 @@ Different models of similar sizes have shown vastly different performance. Many 
 | Llama 3.1 8B Instruct Turbo | Good |
 | Gemini 1.5 Flash | Good |
 | Gemini 1.5 Flash 8B | Good |
+| Phi 4 | Good |
 | | |
 | Mistral Small 3 | Poor |
 | Mistral 7B Instruct v0.3 | Poor |
@@ -117,9 +118,8 @@ Different models of similar sizes have shown vastly different performance. Many 
 | WizardLM-2 8x22B | Poor |
 | Euryale 3.1 70B v2.2 | Poor |
 | Mistral Nemo Instruct 2407 | Poor |
-| Command R Plus | Incompatible |
+| Command R Plus | Poor |
 | | |
-| Phi 4 | Incompatible |
 | Llama 3.2 3B Instruct | Incompatible |
 | Llama 3.2 1B Instruct | Incompatible |
 | Gemini 2.0 Flash Light Preview 02-05 | Incompatible |

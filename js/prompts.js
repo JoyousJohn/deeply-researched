@@ -123,7 +123,6 @@ USER_ANSWERS: [Array of user's responses to those questions]
 
 // - Example formatting_requirements: "Three sections. A bullet point list showcasing the statistics."
 
-
 const createSections = `You are tasked with creating a comprehensive document structure. You will be provided with three inputs: 1) a detailed query describing the core information needs, 2) specific formatting requirements, and 3) required content elements. Your task is to create detailed sections that address these requirements while adhering to the specified formatting.
 
 You are to focus on incorporating all three inputs into an organized structure. Do not introduce information beyond what was specified in these inputs. Focus solely on organizing content that fulfills the stated needs.
@@ -142,38 +141,30 @@ Guidelines:
     * How the information should be presented and structured
     * Key topics that must be covered based on all inputs
     * Keep descriptions of the content covered within each section unique and exclusive of the other sections.
-* For search keywords:
-    * Include specific terms from all three inputs
-    * Add specialized terminology from the requirements
-    * Include metrics and data points specified
-    * Consider different phrasings of key concepts from all inputs
-    * Add geographic or temporal terms if specified
 
 The sections must not overlap in purpose. Each description should not cover information already mentioned in other sections.
 
-Return a JSON array where each object represents a document section. The response must:
+Return a JSON array where each object represents a document section. If there's only one section, still return it in an array. The response must:
 
 * Contain ONLY valid JSON with no additional text or formatting. Do not surround the JSON in backticks. Do not add newline characters. Do not format the JSON as a code block. Return the JSON in raw-text.
-* Include exactly these three fields for each section:
+* Include exactly these two fields for each section:
     * "section_title": String containing a clear, professional title for the section.
     * "description": String containing an extremely detailed explanation of how to implement all requirements from the three inputs for this section. Do not include any newline characters in the description.
-    * "search_keywords": Array of strings containing specific search terms from all three inputs that would help find sources for this section's required information.
 
 Input Format:
 QUERY: [String describing the core information needs]
 FORMATTING_REQUIREMENTS: [String containing specific formatting requirements]
 CONTENT_REQUIREMENTS: [String listing mandatory content elements]
 
-Example format: (no backticks)
+Example format:
 
-[{"section_title": "string: professional title 1 of the section",
-        "description": "string: comprehensive explanation of how to implement all requirements from the three inputs for this section",
-        "search_keywords": ["string: specific search term 1 from the inputs", "string: specific search term 2 from the inputs"]
+[{
+        "section_title": "string: professional title 1 of the section",
+        "description": "string: comprehensive explanation of how to implement all requirements from the three inputs for this section"
     },
     {
         "section_title": "string: professional title 2 of the section",
-        "description": "string: comprehensive explanation of how to implement all requirements from the three inputs for this section",
-        "search_keywords": ["string: specific search term 1 from the inputs", "string: specific search term 2 from the inputs"]
+        "description": "string: comprehensive explanation of how to implement all requirements from the three inputs for this section"
     }
 ]
 `
@@ -368,111 +359,104 @@ Output if no changes needed:
 }
     `
 
+const reviseDocumentPrompt = `Return only a JSON object that analyzes if a document layout meets both formatting and content requirements. The response MUST strictly follow these output formats with no exceptions:
 
-    const reviseDocumentPrompt = `Return only a JSON object that analyzes if a document layout meets both formatting and content requirements. The response MUST strictly follow these output formats with no exceptions:
+IF NO CHANGES ARE NEEDED:
+You MUST return EXACTLY and ONLY this object:
+{
+    "needed_changes": false
+}
 
-    IF NO CHANGES ARE NEEDED:
-    You MUST return EXACTLY and ONLY this object:
-    {
-        "needed_changes": false
-    }
-    
-    IF CHANGES ARE NEEDED:
-    You MUST return an object with ALL these fields:
-    {
-        "needed_changes": true,
-        "modified_layout": [array of modified sections],
-        "changes_explanation": {
-            "formatting_changes": "explanation of formatting changes made",
-            "content_changes": "explanation of content changes made"
+IF CHANGES ARE NEEDED:
+You MUST return an object with ALL these fields:
+{
+    "needed_changes": true,
+    "modified_layout": [array of modified sections],
+    "changes_explanation": {
+        "formatting_changes": "explanation of formatting changes made",
+        "content_changes": "explanation of content changes made (if applicable)"
+    },
+    "requirements_verification": ["explanation of how each content requirement is addressed, prioritizing formatting over content"]
+}
+
+Input format:
+1. DOCUMENT_LAYOUT: An array of section objects with the structure:
+    [
+        {
+            "section_title": "string: title of the section",
+            "description": "string: comprehensive explanation of section content"
         },
-        "requirements_verification": ["explanation of how each content requirement is addressed"]
-    }
-    
-    Input format:
-    1. DOCUMENT_LAYOUT: An array of section objects with the structure:
-        [
-            {
-                "section_title": "string: title of the section",
-                "description": "string: comprehensive explanation of section content",
-                "search_keywords": ["string: specific search term", ...]
-            },
-            ...
-        ]
-    2. FORMAT_REQUIREMENTS: A string containing specific formatting rules
-    3. CONTENT_REQUIREMENTS: A string containing specific content coverage requirements
-    
-    Rules:
-    - The response format MUST be exactly as specified above with no exceptions
-    - You MUST check BOTH formatting and content requirements
-    - When ALL requirements are already met, return ONLY { "needed_changes": false }
-    - When ANY changes are needed, return ALL fields described above
-    - NEVER include modified_layout, changes_explanation, or requirements_verification when needed_changes is false
-    - ALWAYS include all three fields when needed_changes is true
-    - The modified_layout must address BOTH formatting and content requirements
-    - requirements_verification must explicitly show how each content requirement is addressed
-    
-    Example when no changes needed:
-    Input:
-    {
-        "DOCUMENT_LAYOUT": [
-            {
-                "section_title": "Brand Sales",
-                "description": "Comprehensive sales data by brand with market analysis",
-                "search_keywords": ["brand", "sales", "analysis"]
-            },
-            {
-                "section_title": "Sales Trends",
-                "description": "Five-year trends analysis with competitive insights",
-                "search_keywords": ["trends", "forecast", "competition"]
-            }
-        ],
-        "FORMAT_REQUIREMENTS": "Must have two sections: one for brand sales and one for trends",
-        "CONTENT_REQUIREMENTS": "Must include sales data and competitive analysis"
-    }
-    Output:
-    {
-        "needed_changes": false
-    }
-    
-    Example when changes needed:
-    Input:
-    {
-        "DOCUMENT_LAYOUT": [
-            {
-                "section_title": "Sales Overview",
-                "description": "Basic sales data overview",
-                "search_keywords": ["sales", "overview"]
-            }
-        ],
-        "FORMAT_REQUIREMENTS": "Must have two sections: one for current sales and one for forecasting",
-        "CONTENT_REQUIREMENTS": "Must include 5-year forecast and competitive analysis"
-    }
-    Output:
-    {
-        "needed_changes": true,
-        "modified_layout": [
-            {
-                "section_title": "Current Sales Analysis",
-                "description": "Comprehensive analysis of current sales data including competitive positioning",
-                "search_keywords": ["sales", "analysis", "competition"]
-            },
-            {
-                "section_title": "Sales Forecast",
-                "description": "Detailed 5-year sales projections with market trend analysis",
-                "search_keywords": ["forecast", "projections", "trends"]
-            }
-        ],
-        "changes_explanation": {
-            "formatting_changes": "Split single overview section into two required sections: current sales and forecasting",
-            "content_changes": "Added competitive analysis to current sales section and created comprehensive 5-year forecast in new section"
+        ...
+    ]
+2. FORMAT_REQUIREMENTS: A string containing specific formatting rules
+3. CONTENT_REQUIREMENTS: A string containing specific content coverage requirements
+
+Rules:
+- The response format MUST be exactly as specified above with no exceptions
+- You MUST check BOTH formatting and content requirements
+- When ALL requirements are already met, return ONLY { "needed_changes": false }
+- When ANY changes are needed, return ALL fields described above
+- NEVER include modified_layout, changes_explanation, or requirements_verification when needed_changes is false
+- ALWAYS include all three fields when needed_changes is true
+- The modified_layout must address BOTH formatting and content requirements
+- requirements_verification must explicitly show how each content requirement is addressed
+
+Example when no changes needed:
+Input:
+{
+    "DOCUMENT_LAYOUT": [
+        {
+            "section_title": "Brand Sales",
+            "description": "Comprehensive sales data by brand with market analysis"
         },
-        "requirements_verification": [
-            "5-year forecast covered in dedicated Sales Forecast section",
-            "Competitive analysis integrated into Current Sales Analysis section",
-            "Two-section format requirement met with clear separation of current analysis and forecasting"
-        ]
-    }`
+        {
+            "section_title": "Sales Trends",
+            "description": "Five-year trends analysis with competitive insights"
+        }
+    ],
+    "FORMAT_REQUIREMENTS": "Must have two sections: one for brand sales and one for trends",
+    "CONTENT_REQUIREMENTS": "Must include sales data and competitive analysis"
+}
+Output:
+{
+    "needed_changes": false
+}
+
+Example when changes needed:
+Input:
+{
+    "DOCUMENT_LAYOUT": [
+        {
+            "section_title": "Sales Overview",
+            "description": "Basic sales data overview"
+        }
+    ],
+    "FORMAT_REQUIREMENTS": "Must have two sections: one for current sales and one for forecasting",
+    "CONTENT_REQUIREMENTS": "Must include 5-year forecast and competitive analysis"
+}
+Output:
+{
+    "needed_changes": true,
+    "modified_layout": [
+        {
+            "section_title": "Current Sales Analysis",
+            "description": "Comprehensive analysis of current sales data including competitive positioning"
+        },
+        {
+            "section_title": "Sales Forecast",
+            "description": "Detailed 5-year sales projections with market trend analysis"
+        }
+    ],
+    "changes_explanation": {
+        "formatting_changes": "Split single overview section into two required sections: current sales and forecasting",
+        "content_changes": "Added competitive analysis to current sales section and created comprehensive 5-year forecast in new section"
+    },
+    "requirements_verification": [
+        "5-year forecast covered in dedicated Sales Forecast section",
+        "Competitive analysis integrated into Current Sales Analysis section",
+        "Two-section format requirement met with clear separation of current analysis and forecasting"
+    ]
+}`
 
 const categorizeSourcePrompt = `You will be provided a large body of text. Your task is to return a string sufficiently describing what the content within the text is and contains. Be extremely detailed and thorough; cover all the info covered in the text, but do not explain its purpose. The end goal is categorize this text based on its description of its contents.
 

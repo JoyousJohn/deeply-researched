@@ -62,7 +62,7 @@ async function beginSearches() {
         $('.current-section').html(`Working on section ${count}/${plan.length}: <span style="color: rgb(168, 168, 168)">${section.section_title}</span>`)
 
         $('.current-search-desc').text(`Researching ${section.section_title}`)
-        $('.current-search-keywords').text(`Searching ${section.search_keywords}...`)
+        // $('.current-search-keywords').text(`Searching ${section.search_keywords}...`)
 
         // let links;
         // if (count === 1) {
@@ -374,7 +374,7 @@ async function getRelevantAndNeededSources(sectionDescription, sources_only) {
         prompt = selectOnlySourcesPrompt;
     } else if (!sources_only && Object.keys(sources).length > 0) {
         prompt = selectSourcesPrompt
-    } else if (!sources && Object.keys(sources).length === 0) {
+    } else if (!sources_only && Object.keys(sources).length === 0) {
         prompt = generateMissingInfoPrompt;
     }
 

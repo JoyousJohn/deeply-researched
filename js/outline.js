@@ -21,7 +21,6 @@ function addPlanToOutline() {
             </div>
 
             <div class="outline-section-desc none" data-outline-section=${index}>${section.description}</div>
-            <div class="outline-section-keywords none">Keywords: ${section.search_keywords}</div>
 
         </div>`)
 
