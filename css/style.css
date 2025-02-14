@@ -167,7 +167,8 @@ body {
     border-radius: 0.7rem;
     margin-top: 2rem;
     padding: 1rem 2rem;
-    position: absolute;
+    position: fixed;
+    z-index: 1;
 }
 
 .settings-inner {

@@ -487,7 +487,7 @@ Inputs:
 2. sources: Dictionary where keys are numerical source IDs and values are source content descriptions.
 
 Source Selection Guidelines:
-- Select up to 20 of the most relevant sources, prioritizing those that:
+- Select up to 15 of the most relevant sources, prioritizing those that:
   * Directly address the core topic
   * Provide substantial coverage of key aspects
   * Contain unique or critical information
@@ -514,7 +514,7 @@ Evaluation Process:
 
 Requirements:
 1. Return a JSON object containing:
-    - source_ids: List of up to 20 most relevant source IDs (if any)
+    - source_ids: List of up to 15 most relevant source IDs (if any)
     - Conditionally include:
      * required_info_description: Brief text listing the missing information (if sources are insufficient)
      * search_term: Search engine query to find missing information (if sources are insufficient)
@@ -548,7 +548,7 @@ Before finalizing response:
 - Ensure sources provide comprehensive coverage of key aspects
 - Confirm selection represents the most important perspectives
 - Check that the source_ids list is properly prioritized
-- Ensure the source_ids array is no more than 20 elements long
+- Ensure the source_ids array is no more than 15 elements long
 `
 
 const generateMissingInfoPrompt = `Task: Analyze a research section description and generate a specific description of required information and a targeted search query to find that information. The output should be precise enough to guide effective information gathering while being concise.
@@ -609,7 +609,7 @@ Before finalizing response:
 const selectOnlySourcesPrompt = `Task: Analyze a research section description and identify the most relevant information sources (maximum 20) from the provided dictionary, prioritizing the most critical and directly relevant sources.
 
 Source Selection Guidelines:
-- Select up to 20 of the most relevant sources, prioritizing those that:
+- Select up to 15 of the most relevant sources, prioritizing those that:
   * Directly address the core topic
   * Provide substantial coverage of key aspects
   * Contain unique or critical information
@@ -629,7 +629,7 @@ Evaluation Process:
 
 Requirements:
 - Return a JSON object containing only the source_ids key
-- The source_ids value should be an array of up to 20 source ID strings
+- The source_ids value should be an array of up to 15 source ID strings
 - IDs should be ordered by relevance/importance
 
 Important formatting rules:
@@ -648,7 +648,7 @@ Before finalizing response:
 - Ensure sources provide comprehensive coverage of key aspects
 - Confirm selection represents the most important perspectives
 - Check that the source_ids list is properly prioritized
-- Ensure the source_ids array is no more than 20 elements long`
+- Ensure the source_ids array is no more than 15 elements long`
 
 
 const checkFulfillsDescriptionPrompt = `Evaluate if source descriptions fulfill a required information description. Consider that details can be reasonably inferred or expanded from context.
@@ -700,81 +700,39 @@ Respond with JSON (no backtick block formatting):
 If fulfills is true, return object with fulfills:true and empty info array. If fulfills is false, break down the missing information into multiple distinct, specific aspects, with each object in the info array targeting a concrete gap that can be searched independently.`
 
 
+const analyzeArticlesPrompt = `
+... (previous content remains the same)
 
-// More leniant prompt
-// const checkFulfillsDescriptionPrompt = `Evaluate if source descriptions fulfill a required information description. Consider that details can be reasonably inferred or expanded from the context.
-// Mark information as missing only if:
-// - It is an absolute and critical element indispensable for the core requirements and cannot be reasonably deduced from the provided descriptions.
-// - It is essential for understanding or executing the task and is not implied by any surrounding context.
-// Be lenient in evaluation:
-// - Accept sources that indirectly suggest or likely contain the necessary information.
-// - Consider that key details may be inferred through context even if not explicitly stated.
-// - Focus on identifying only significant gaps rather than every minor omission.
-// Search term construction rules:
-// - Write as a natural search engine query including the main technical concept/topic.
-// - Add qualifiers (versions, frameworks, methodologies) for clarity.
-// - Specify content type (tutorial, documentation, etc.) if relevant.
-// - Include a recent year range for technology topics when applicable.
-// - Use quotes for multi-word technical terms/exact phrases.
-// - Focus solely on articulating the specific missing information, if any.
-// - If multiple searches are attempted, adopt broader, more general approaches or different perspectives to avoid repetition.
-// Important formatting rules:
-// - Do not return any text outside of the resulting JSON object.
-// - Do not prettify or add extra formatting to your response.
-// - The descriptions must be one continuous string without line breaks.
-// - Do not wrap your response in a JSON code block or with additional backticks.
-// Return response using raw-text JSON in the following format:
-// {
-//    "fulfills": boolean,
-//    "info": [
-//        {
-//            "missing_information": "A distinct aspect of the missing information that can be searched independently",
-//            "search_term": "Search query targeting only this specific aspect"
-//        },
-//        {...}
-//    ]
-// }
-// If the descriptions fulfill the required information, return {"fulfills": true} with an empty info array. If not, break down the missing information into multiple distinct aspects with each object targeting a specific missing part.
-// `;
+**Citation Rules - STRICTLY ENFORCED:**
+- EVERY sentence MUST end with at least one source citation [SRC_x]
+- Multiple source citations must be in ascending numerical order [SRC_1][SRC_2]
+- Citations must use the exact format [SRC_x] - no variations allowed
+- Any uncited sentence will be considered invalid output
+- Citations must appear immediately after the relevant information
+- When combining information from multiple sources, cite all relevant sources
 
+**Invalid Citation Examples:**
+- Missing citation: "The temperature increased by 2.5 degrees"
+- Wrong format: (SRC_1) or [Source 1] or [1]
+- Delayed citation: "The temperature increased by 2.5 degrees. Later that year..." [SRC_1]
 
-const analyzeArticlesPrompt = `You will be provided the subject of a section, its description, and an array of source materials. Each source has a sourceId and content field. Write **only the raw content** for this specific section as part of a longer document. Your task is to **extract and analyze only the information directly relevant to the section's description** across all provided sources. Do **not** summarize or cover all information from the source texts. Follow these guidelines:
+**Valid Citation Examples:**
+- "The temperature increased by 2.5 degrees" [SRC_1]
+- "Global emissions rose steadily" [SRC_1][SRC_2]
+- "While some regions saw decreases [SRC_1], others experienced increases" [SRC_2]
 
-1. **Strictly adhere to the section's description**—only include information that directly addresses the description's requirements. Ignore anything irrelevant.
-2. **Use specific evidence** (examples, quotes, data) from the provided sources to support your points. Every piece of information must be cited with its source ID in square brackets [ID] immediately after the referenced information.
-3. **Analyze patterns, relationships, and themes** relevant to the section's focus across multiple sources. Look for connections and contradictions between different sources.
-4. **Explain complex ideas clearly** and incorporate multiple perspectives where applicable, especially when different sources offer varying viewpoints.
-5. **Prioritize depth over breadth**—focus on key insights and their significance, not on covering everything in the source texts.
+**Output Validation Requirements:**
+1. Every paragraph must contain at least one citation
+2. No uncited claims or analysis are allowed
+3. Each source citation must use the exact [SRC_x] format
+4. Citations must appear immediately after the referenced information
+5. Analysis combining multiple sources must cite all relevant sources
 
-**Strict Rules:**
-- **NO summaries of individual sources.** Only extract and analyze what is directly relevant to the section's description.
-- **NO introductions, conclusions, summaries, or transitions.** Start immediately with analysis. Do not conclude with "overall" statements.
-- **NO markdown, bullet points, or section titles.** Write in plain prose.
-- **NO filler phrases** (e.g., "This section will discuss…"). Assume the reader is already within the document.
-- **NO extraneous information.** Exclude anything not explicitly tied to the section's description.
-- **NO repetition.** Do not excessively repeat facts or texts. Rather, delve deeply into their significance with respect to the description.
-- **MANDATORY citation format:** Include source ID in square brackets [ID] immediately after any information, quote, or analysis derived from that source. When information comes from multiple sources, include all relevant IDs: [1][2].
-- When analyzing contradictions or complementary information across sources, focus on the substance while clearly citing each source.
-- Do *not* directly refer or mention the sources in sentences, rather cite the source ID afterward. (*NO saying* "the author...", "the text...", "the source...", "in source x...")
-
-**Citation Examples:**
-- Single source: "The temperature increased by 2.5 degrees" [SRC_1]
-- Multiple sources agreeing: "Global emissions have risen steadily since 2010" [SRC_1][SRC_2]
-- Contrasting information: "While some regions saw decreases [SRC_1], others experienced dramatic increases [SRC_2]"
-
-
-**Output Format:**
-- Raw, continuous text that flows naturally within a larger work.
-- Break up large and long blocks of text into paragraphs separated by new lines for easier reading.
-- Directly address the description's points in detail, using **only the most relevant evidence** from all available sources.
-- Every piece of information must be followed by its source ID(s) in square brackets.
-
-Example input format:
-{
-  1: "Text from first source...",
-  2: "Text from second source...",
-  3: "Text from third source..."
-}`
+Before submitting your response, verify that:
+- Every sentence has at least one citation
+- All citations use the correct [SRC_x] format
+- No information appears without a corresponding citation
+- Citations are properly placed immediately after the referenced information`
 // **After every paragraph in your response**: Include the source ID of the sources you used by wrwapping the source ID integer (from the supplied dictionary) in square brackets.
 
 //- **NO uncited information.** Every piece of information must be traced to its source(s).
