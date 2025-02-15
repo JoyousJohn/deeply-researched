@@ -14,19 +14,20 @@ https://github.com/user-attachments/assets/980cd4be-7ccf-48e9-b696-3c3cc4f52c5d
 
 ## Overview
 
-Mimicing OpenAI Deep Research, Deeply Researched is a browser-based research tool capable of searching the web with iterative self-refinement. The system breaks down complex queries into subtasks, continuously validates its progress, and automatically locates sources to find and explore relevant information.
+Mimicing OpenAI Deep Research, Deeply Researched is a browser-based research tool capable of searching the web with iterative self-refinement. The system breaks down complex queries into subtasks, continuously validates its progress, and automatically finds needed sources to find and explore relevant information.
 
 ### Performance
 Deeply Researched has demonstrated comparable results to Deep Research while maintaining efficiency across various model sizes. Even models as small as Llama 8B yield satisfactory results, with inexpensive Nova Lite 1.0 already producing stellar outputs.
 
 ### Key Features
-- Iterative task decomposition and validation
-- Automated web source discovery and integration
+- Iterative task decomposition, validation, and backtracking
+- Autonomous & precise web searching
+- In-text source citations
 - Token-efficient processing of large datasets via mapping 
-- Browser-based interface with minimal backend requirements
+- Browser-based interface with minimal backend
 - No search engine API requirement
-- Compatible with various decoder-based language models
-- Demonstrated effectiveness across model scales, including compact architectures (8B+ parameters)
+- Compatible with decoder-based language models
+- Demonstrates effectiveness across model sizes
 - View live cost, runtime, model request, and token breakdowns
 - Limit specificity to your likings
 - 429 error handling (thus compatible with free, rate-limited providers!)
@@ -51,10 +52,11 @@ Future, optional, Brave Search API integration will fully eliminate the need for
 ## Configuration
 
 1. Access settings the bottom-left corner
-2. Configure the following for your OpenAI API-compatible model:
+2. Configure the following for your OpenAI API-compatible model (all saved in your browser's local storage):
    - Model ID
    - Base URL
-   - API key (saved in browser local storage)
+   - API key
+        - Leave API key blank if locally hosting (Ollama, gpt4free, vLLM) a model API
 3. Save your configuration
 
 ## Modification
@@ -77,16 +79,16 @@ Deeply Research primarily functions by recursive prompting. All prompts are loca
    5. A draft response is generated
    6. The draft is refined to eliminate repetition
    7. The section is confirmed to comply with requirements, else backtrack to the required step above and recurse
-   8. Text near the end of the prior section is rewritten to ensure a smooth transition
+   8. Boundary text is rewritten to ensure smooth transitions
    9. Section is confirmed to still follow all required formatting after all refinement
 8. The final response is assembled and undergoes final validation
 9. Final response is shown and Deeply Seeked waits for additional instructions 
 
-Notably, excessively large contexts are never sent to the model. This prompt chaining allows even SMLs to abide by strict and complex instruction following to produce excellent responses at a low cost with minimal token-throughput. The only downside with this precise thinking is the required inference time.
+Notably, excessively large contexts are never sent to the model. This prompt chaining allows even the smallest of models to abide by strict and complex instruction following to produce excellent responses at a low cost with minimal token-throughput. The only downside with this precise thinking is the required inference time.
 
 ## Tested Model Results
 
-Different models of similar sizes have shown vastly different performance. Many models seem to especially struggle with verifying if source context is sufficient and require a timeout. I recommend testing multiple models to achieve your specific use case. My general benchmarks have shown the following performance:
+Different models of similar sizes have shown vastly different performance. Many models seem to especially struggle with verifying if source context is sufficient and require a timeout. I recommend testing multiple models to achieve your specific use case. My general benchmarks for personal use cases have shown the following performance:
 
 | Model      | Performance |
 |------------|--------|
@@ -139,5 +141,6 @@ Different models of similar sizes have shown vastly different performance. Many 
 | Codestral 2501 | Incompatible |
 | Qwen Plus | Incompatible |
 | Jamba Instruct | Incompatible |
+| GPT-4 | Incompatible |
 
  Models labeled "incompatible" cannot return valid, structured, and sensical responses consistently and in a cost-effective manner without requiring excessive attempts.

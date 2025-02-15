@@ -211,7 +211,7 @@ $(document).ready(function() {
             savedMessage.text('Max sources saved successfully!').css('background-color', '#28b128').css('color', 'white').slideDown('fast');
 
             setTimeout(function() {
-                savedMessage.slideUp('fast');
+                savedMessage.slideUp('fast').css('background-color', '#28b128');
             }, 2000);
         } else {
             savedMessage.text('Please enter a value between 10 and 20.').css('background-color', 'red').css('color', 'white').slideDown('fast');

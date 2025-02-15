@@ -155,7 +155,7 @@ body {
     right: 0;
     font-size: 3rem;
     color: rgb(212, 212, 212);
-    margin: 1rem 2rem;
+    margin: 1rem 3rem;
     font-weight: 500;
     cursor: pointer;
 }
@@ -615,6 +615,12 @@ textarea::-webkit-scrollbar {
     flex-direction: column;
     row-gap: 1.5rem;
     margin: 1.5rem;
+}
+
+.sources-count {
+    font-size: 1.4rem;
+    color: white;
+    padding: 0.5rem 0;
 }
 
 .source {

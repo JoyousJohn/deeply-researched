@@ -11,7 +11,7 @@ let refinedContentRequirements;
 let input;
 
 const phasePrefixAdditions = {
-    'createSections': '[{"section_title":'
+    'createSections': `[`               
 }
 
 let questions;
@@ -105,7 +105,7 @@ function nextPhase() {
                 FORMATTING_REQUIREMENTS: ${refinedFormattingRequirements}
                 CONTENT_REQUIREMENTS: ${refinedContentRequirements}`
             },
-            {role: 'assistant', content:'[{"section_title":'}
+            {role: 'assistant', content:'['}
         ]
 
         newActivity('Creating a search plan', undefined, undefined, true);

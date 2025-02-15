@@ -283,7 +283,7 @@ async function checkIfSourceFulfillsDescription(candidateSources, requiredDescri
             // console.log("Search Term:", missing_topic.search_term);
             // console.log("========================");
 
-            newActivity(`Missing information: ${missing_topic.missing_information}`);
+            newActivity(`Looking for ${missing_topic.missing_information.charAt(0).toLowerCase() + missing_topic.missing_information.slice(1)}`);
             newActivity(`Searching for: "${missing_topic.search_term}"`);
 
             // console.log("Branch history length: ", branchHistory.length)
@@ -403,20 +403,16 @@ async function getRelevantAndNeededSources(sectionDescription, sources_only) {
 }
 
 
-function sendRequestToDecoder(messages_payload, max_tokens, do_stream = false) {
+function sendRequestToDecoder(messages_payload, { signal, max_tokens, do_stream = false } = {}) {
     return new Promise((resolve, reject) => {
         let payload = {
             model: decoderModelId,
             temperature: 0.7,
             top_p: 0.9,
             messages: messages_payload,
-            max_tokens: 8192,
+            max_tokens: max_tokens || 8192,
             stream: do_stream
         };
-
-        if (max_tokens) {
-            payload['max_tokens'] = max_tokens;
-        }
 
         fetch(decoderBase, {
             method: 'POST',
@@ -424,13 +420,13 @@ function sendRequestToDecoder(messages_payload, max_tokens, do_stream = false) {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${decoderKey}`
             },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(payload),
+            signal // Add the AbortController signal here
         })
         .then(response => {
             if (!response.ok) {
-                // Rate limit handling remains the same
                 if (response.status === 429) {
-                    // ... (rate limit handling code remains unchanged)
+                    // Keep existing rate limit handling
                 }
 
                 return response.text().then(text => {
@@ -447,6 +443,17 @@ function sendRequestToDecoder(messages_payload, max_tokens, do_stream = false) {
                 let buffer = '';
                 let usage = null;
                 let hasResolved = false;
+
+                // Add signal handling for streaming
+                if (signal) {
+                    signal.addEventListener('abort', () => {
+                        reader.cancel();
+                        if (!hasResolved) {
+                            hasResolved = true;
+                            reject(new Error('Request aborted'));
+                        }
+                    });
+                }
 
                 function read() {
                     return reader.read().then(({ done, value }) => {
@@ -465,19 +472,15 @@ function sendRequestToDecoder(messages_payload, max_tokens, do_stream = false) {
                             return;
                         }
 
-                        // Decode the chunk
+                        // Rest of your existing streaming logic remains the same
                         const chunk = decoder.decode(value, { stream: true });
                         buffer += chunk;
                         
-                        // Split on newlines to process complete messages
                         const lines = buffer.split('\n');
-                        // Keep the last potentially incomplete line in the buffer
                         buffer = lines.pop() || '';
                         
-                        // Process complete lines
                         for (const line of lines) {
-                            if (line.trim() === '') continue;
-                            if (!line.startsWith('data: ')) continue;
+                            if (line.trim() === '' || !line.startsWith('data: ')) continue;
 
                             try {
                                 const jsonString = line.slice(6);
@@ -506,11 +509,7 @@ function sendRequestToDecoder(messages_payload, max_tokens, do_stream = false) {
                                 if (data.choices?.[0]?.delta?.content) {
                                     const contentChunk = data.choices[0].delta.content;
                                     result += contentChunk;
-                                    
-                                    // First update the modal with the raw chunk
                                     addToModalMessage(contentChunk);
-                                    
-                                    // Then apply the link replacement to the entire result
                                     const updatedResult = replaceSourceWithLink(result);
                                     updateModalContent(updatedResult);
                                 }
@@ -533,6 +532,7 @@ function sendRequestToDecoder(messages_payload, max_tokens, do_stream = false) {
                 return read();
             }
 
+            // Non-streaming response handling
             return response.json().then(response_json => {
                 if (!response_json?.choices?.length) {
                     console.error("Invalid response format:", response_json);
@@ -548,8 +548,12 @@ function sendRequestToDecoder(messages_payload, max_tokens, do_stream = false) {
             });
         })
         .catch(error => {
-            console.error('Error:', error);
-            reject(error);
+            if (error.name === 'AbortError') {
+                reject(new Error('Request timed out'));
+            } else {
+                console.error('Error:', error);
+                reject(error);
+            }
         });
     });
 }
@@ -642,51 +646,53 @@ let sources = {}
 
 
 async function categorizeSource(index, source) {
-    const url = getBaseUrl(source.url)
+    const url = getBaseUrl(source.url);
 
-    newActivity(`Understanding ${url}`, source.url, undefined, true)
+    newActivity(`Understanding ${url}`, source.url, undefined, true);
     const messages_payload = [
         { role: "system", content: categorizeSourcePrompt },
         { role: "user", content: `
             The text body is: ${source.text}
         ` }
-    ]
+    ];
 
     try {
-
         const timerId = $(`.token-count[data-activity-url="${source.url}"]`).attr('data-timer-id');
+        
+        // Create a unique timeout controller for each request
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => {
+            controller.abort();
+        }, 30000);
 
-        const data = await Promise.race([
-            sendRequestToDecoder(messages_payload),
-            new Promise((_, reject) => setTimeout(() => {
-                handleError(source.url, url, "Request timed out"); // Specify timeout error
-                reject(new Error("Request timed out")); // Reject the promise
-            }, 30000)) // 30 seconds timeout
-        ]);
+        try {
+            const data = await sendRequestToDecoder(messages_payload, { signal: controller.signal });
+            clearTimeout(timeoutId); // Clear timeout on success
 
-        addTokenUsageToActivity(data.usage, source.url, timerId)
+            addTokenUsageToActivity(data.usage, source.url, timerId);
 
-        // Proceed to parse data only if it exists
-        if (data) {
-            try {
+            if (data) {
                 let content = JSON.parse(data.choices[0].message.content);
-                // Move these lines inside the try block so they only execute on success
                 addToModalMessage(`\n\n${url} contains ${content.description.charAt(0).toLowerCase() + content.description.slice(1)}`);
                 sources[index]['description'] = content.description;
+                $('.sources-count').text(Object.keys(sources).length + ' sources');
                 return content.description;
-
-            } catch (jsonError) {
-                handleError(source.url, url, "JSON parsing failed"); // Specify JSON parsing error
-                console.log('JSON content:', data.choices[0].message.content);
             }
-        } else {
-            // Handle the case where data is null or undefined
-            console.error("No data received from sendRequestToDecoder");
-            handleError(source.url, url, "No data received"); // Specify no data error
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                handleError(source.url, url, "Request timed out");
+            } else {
+                handleError(source.url, url, error.message || "Request failed");
+            }
+
+            $(`.token-count[data-activity-url="${source.url}"]:not(.activity-error)`).first().parent().find('.activity-header').removeClass('activity-understanding');
+            throw error;
+        } finally {
+            clearTimeout(timeoutId); // Ensure timeout is cleared in all cases
         }
     } catch (error) {
         console.error('Error occurred:', error);
-        // Handle any other errors that may occur
+        handleError(source.url, url, error.message || "Unknown error");
     }
 }
 
@@ -704,43 +710,75 @@ function handleError(sourceUrl, url, errorType) {
 }
 
 async function getTexts(links) {
-
-    let validResponses = 0; // Initialize validResponses
-    const totalResponses = links.length; // Total number of links to process
-
-    let allData = []
+    let validResponses = 0;
+    let allData = [];
 
     try {
-        responses = await Promise.all(
+        const responses = await Promise.allSettled(
             links.map(async (link) => {
-                const linkArray = JSON.stringify([link]);
-                const response = await fetch(`http://localhost:8000/get_link_texts?links=${encodeURIComponent(linkArray)}`);
-                const data = await response.json();
-                const results = data.results;
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-                updateActivityLinkColor(results)
+                try {
+                    // Simplified fetch request that won't trigger preflight
+                    const response = await fetch(
+                        `http://localhost:8000/get_link_texts?links=${encodeURIComponent(JSON.stringify([link]))}`,
+                        {
+                            signal: controller.signal,
+                            // Removed Content-Type header to avoid preflight
+                        }
+                    );
 
-                results.forEach(result => {
-                    if (result.length !== 0) {
-                        validResponses++;
-                        allData.push(result);
-                        // console.log(`${validResponses}/${totalResponses} responses completed`); // Log the progress
-                    
-                        const $sourceElm = $(`<a class="source flex flex-col" href="${link}" target="_blank">
-                            <div class="source-title">${result.title}</div>
-                            <div class="source-url">${getBaseUrl(link)}</div>
-                            <div class="source-length">${result.length.toLocaleString()} chars /
-                                ${result.text.split(/\s+/).length.toLocaleString()} words</div>
-                        </a>`)
-
-                        $('.sources').prepend($sourceElm)
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
                     }
-                });
-                return data;
+
+                    const data = await response.json();
+                    // Rest of the processing remains the same
+                    const results = data.results;
+
+                    updateActivityLinkColor(results);
+
+                    results.forEach(result => {
+                        if (result.length !== 0) {
+                            validResponses++;
+                            allData.push(result);
+                            
+                            const $sourceElm = $(`<a class="source flex flex-col" href="${link}" target="_blank">
+                                <div class="source-title">${result.title}</div>
+                                <div class="source-url">${getBaseUrl(link)}</div>
+                                <div class="source-length">${result.length.toLocaleString()} chars /
+                                    ${result.text.split(/\s+/).length.toLocaleString()} words</div>
+                            </a>`);
+
+                            $('.sources').children().first().after($sourceElm);
+                        }
+                    });
+                    return { link, data };
+
+                } catch (error) {
+                    if (error.name === 'AbortError') {
+                        handleError(link, getBaseUrl(link), "Request timed out");
+                    } else {
+                        handleError(link, getBaseUrl(link), error.message || "Failed to fetch");
+                    }
+                    throw error;
+                } finally {
+                    clearTimeout(timeoutId);
+                }
             })
         );
+
+        // Handle the results
+        responses.forEach(response => {
+            if (response.status === 'rejected') {
+                console.error('Request failed:', response.reason);
+            }
+        });
+
     } catch (error) {
         newActivity('Failed to fetch one or more websites');
+        console.error('Fatal error in getTexts:', error);
         throw error;
     }
 
@@ -752,27 +790,28 @@ async function getTexts(links) {
     newActivity(`Analyzing ${allData.length} ${allData.length > 1 ? 'websites' : 'website'}`);
 
     const startIndex = Object.keys(sources).length;
-
     const categorizePromises = [];
 
     for (let index = 0; index < allData.length; index++) {
-
         const source = allData[index];
-        // console.log(source.url)
         const this_source = {
             url: source.url,
             text: source.text,
             length: source.length
         };
-        sources[startIndex + index] = this_source; // Add to sources
-        // $('.status-option-sources').text(`Sources (${Object.keys(sources).length})`);
+        sources[startIndex + index] = this_source;
 
-        // Push the promise to the array
         categorizePromises.push(categorizeSource(startIndex + index, this_source));
     }
 
-    // Wait for all categorizeSource calls to complete
-    await Promise.all(categorizePromises);
+    // Wait for all categorizeSource calls to complete, handling any errors
+    try {
+        await Promise.allSettled(categorizePromises);
+    } catch (error) {
+        console.error('Error during categorization:', error);
+        newActivity('Error during website analysis');
+    }
+
     return;
 }
 

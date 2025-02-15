@@ -158,7 +158,8 @@ CONTENT_REQUIREMENTS: [String listing mandatory content elements]
 
 Example format:
 
-[{
+[
+    {
         "section_title": "string: professional title 1 of the section",
         "description": "string: comprehensive explanation of how to implement all requirements from the three inputs for this section"
     },
@@ -167,6 +168,7 @@ Example format:
         "description": "string: comprehensive explanation of how to implement all requirements from the three inputs for this section"
     }
 ]
+
 `
 
 const reviseFormattingPrompt = `Return only a JSON object that analyzes if a document layout needs modifications to meet specific formatting requirements. The response MUST strictly follow these output formats with no exceptions:

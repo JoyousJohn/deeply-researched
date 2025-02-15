@@ -94,7 +94,9 @@
 
         <div class="flex flex-col content-between flex-grow-1" style="overflow-y: scroll;">
             <div class="activity flex flex-col"></div>
-            <div class="sources flex flex-col" style="display: none;"></div>
+            <div class="sources flex flex-col" style="display: none;">
+                <div class="sources-count"></div>
+            </div>
             <div class="outline flex flex-col" style="display: none;">
                 <div class="outline-query"></div>
                 <div class="iteration none">
@@ -176,16 +178,6 @@
             <div class="flex flex-col gap-y-1p5rem">
                 <div class="text-3rem bold">Model Keys</div>
 
-                <div class="flex flex-col">
-                    <div class="white api-key-label">Reasoning Model (R1/o1/o3) (coming soon)</div>
-                    <div class="input-wrapper-adv">
-                        <input type="text" class="api-key-input disabled-input" placeholder="Model ID" data-key="reasoningModelId" disabled/>
-                        <input type="text" class="api-key-input disabled-input" placeholder="Base URL" data-key="reasoningBase" disabled/>
-                        <input type="text" class="api-key-input disabled-input" placeholder="API Key" data-key="reasoningKey" disabled/>
-                        <button class="confirm-button disabled-input">Save</button>
-                    </div>
-                </div>
-
                 <div>
 
                 <div class="decoder-template flex flex-col" data-model=1>
@@ -225,6 +217,16 @@
 
                 <div class="add-model">Add +</div>
 
+                </div>
+
+                <div class="flex flex-col">
+                    <div class="white api-key-label">Reasoning Model (R1/o1/o3/QwQ/Flash Thinking) (coming soon)</div>
+                    <div class="input-wrapper-adv">
+                        <input type="text" class="api-key-input disabled-input" placeholder="Model ID" data-key="reasoningModelId" disabled/>
+                        <input type="text" class="api-key-input disabled-input" placeholder="Base URL" data-key="reasoningBase" disabled/>
+                        <input type="text" class="api-key-input disabled-input" placeholder="API Key" data-key="reasoningKey" disabled/>
+                        <button class="confirm-button disabled-input">Save</button>
+                    </div>
                 </div>
 
 
