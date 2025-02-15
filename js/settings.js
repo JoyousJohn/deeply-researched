@@ -4,7 +4,7 @@ const defaultSettings = {
     'reasoningBase': null,
     'reasoningKey': null,
     'statsEnabled': true,
-    'maxBranches': 1,
+    'maxBranches': 2,
     'maxSources': 5,
 
     'selectedDecoderModelId': '1',

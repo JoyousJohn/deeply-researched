@@ -121,6 +121,7 @@ Different models of similar sizes have shown vastly different performance. Many 
 | Euryale 3.1 70B v2.2 | Poor |
 | Mistral Nemo Instruct 2407 | Poor |
 | Command R Plus | Poor |
+| Mixtral 8x22B Instruct v0.1 | Poor |
 | | |
 | Llama 3.2 3B Instruct | Incompatible |
 | Llama 3.2 1B Instruct | Incompatible |

@@ -48,7 +48,7 @@ function replaceStarsWithStrong(text) {
 
 
 async function beginSearches() {
-    setPhase('findingLinks');
+    setPhase('searching');
 
     let count = 0;
 
@@ -148,7 +148,7 @@ async function beginSearches() {
 
         let required_source_ids = relevantAndNeededSources.source_ids.slice(0, 15).map(id => parseInt(id.split('_')[1])); 
 
-        newActivity(`Using ${required_source_ids.length} sources: ${required_source_ids.join(', ')}`)
+        newActivity(`Using ${required_source_ids.length} sources: ${required_source_ids.sort().join(', ')}`)
 
         console.log("required_source_ids: ", required_source_ids)
 
@@ -197,6 +197,8 @@ async function beginSearches() {
 
     usage.total += usage.in + usage.out
     $('.token-count').first().text(usage.in.toLocaleString() + ' / ' + usage.out.toLocaleString() + ' / ' + usage.total.toLocaleString() + ' total draft tokens')
+
+    setPhase('done');
 
 }
 

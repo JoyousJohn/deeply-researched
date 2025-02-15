@@ -146,6 +146,23 @@ function nextPhase() {
         ]
 
         newActivity('Confirming document adherence', undefined, undefined, true);
+    
+    } else if (phase === 'done') {
+
+        let researchStr = ''
+
+        finalContent.forEach(section => {
+            researchStr += section.section_title
+            researchStr += section.section_content + '\n\n'
+        })
+
+        payload['messages'] = [
+            {role: "assistant", content: "Here is the in-depth research you requested: " + researchStr},
+            {role: "user", content: input}
+        ]
+
+        newActivity('Responding to request...', undefined, undefined, false);
+
     }
 
     makeRequest(payload);
@@ -181,10 +198,11 @@ function makeRequest(payload) {
 
         let content;
         try {
-            content = fullResponse.choices[0].message.content
-            console.log(content)
-
-            content = JSON.parse(content)
+            content = fullResponse.choices[0].message.content;
+            console.log(content);
+            if (phase !== 'done') {
+                content = JSON.parse(content);
+            }
                      
         } catch (e) {
 
@@ -223,9 +241,9 @@ function makeRequest(payload) {
                     }
                     console.log(content)
                 }
-    
-                content = JSON.parse(content);
 
+                content = JSON.parse(content)
+    
             } catch {
 
                 console.error("Error parsing JSON response:", e);
@@ -256,6 +274,8 @@ function makeRequest(payload) {
             enableBar();
 
         } else if (phase === 'confirmingValidTopic') {
+
+            console.log(content)
 
             addTokenUsageToActivity(usage, undefined, latestTimerId())
 
@@ -397,9 +417,11 @@ function makeRequest(payload) {
                 nextPhase(); // iterate again
             }
 
-        } else {
-            // Fallback: simply add the full response to the modal
-            addToModalMessage(fullResponse);
+        } else if (phase === 'done') {
+            newModelMessageElm(false);
+            addToModalMessage(content);
+            newActivity('Responded.')
+            enableBar();
         }
     })
     .catch(error => console.error('Error:', error));
