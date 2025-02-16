@@ -53,6 +53,22 @@
     font-size: 1.55rem;
 }
 
+.outline-subsections {
+    font-size: 1.5rem;
+    color: rgb(204, 204, 204);
+    margin-top: 1.5rem;
+    row-gap: 3.5rem;
+}
+
+.outline-sub {
+    border-left: 2px solid #3c3c3c;
+    padding-left: 3rem;
+}
+
+.outline-sub-title {
+    color: white;
+}
+
 .iteration {
     border-radius: 3rem;
     width: max-content;

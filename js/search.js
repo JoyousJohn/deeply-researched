@@ -54,6 +54,7 @@ async function beginSearches() {
 
     // Loop through all sections in the plan
     for (const section of plan) {
+
         count++;
 
         if (count !== 1) { newActivity("Continuing to next section"); }
@@ -147,14 +148,34 @@ async function beginSearches() {
             })
         });
 
-        x = sourceTexts;
-
         console.table(sourceTexts)
 
         newActivity(`Source text: ${JSON.stringify(sourceTexts).length.toLocaleString()} chars/${JSON.stringify(sourceTexts).split(' ').length.toLocaleString()} words`)
         newActivity("Drafting the section", undefined, undefined, true)
 
-        await analyzeSearch(JSON.stringify(sourceTexts), section);
+        for (const subsection of section.subsections) {
+            newActivity(`Generating content for subsection: ${subsection.subsection_title}`);
+    
+            const data = await generateSubsectionContentFromSearch(subsection, section, sourceTexts);
+
+            const usage = data.usage || {
+                'prompt_tokens': 0,
+                'completion_tokens': 0,
+                'total': 0
+            };
+            addTokenUsageToActivity(usage, undefined, latestTimerId());
+
+            if (!finalContent[count-1]) {
+                finalContent[count-1] = []; // Initialize as an empty array if undefined
+            }
+            finalContent[count-1].push({
+                'subsection_title': subsection.subsection_title,
+                'text': data.choices[0].message.content,
+                'tokens': usage
+            });
+        }
+
+        // await analyzeSearch(JSON.stringify(sourceTexts), section);
     }
 
     newActivity('Finished the response')
@@ -167,12 +188,15 @@ async function beginSearches() {
         'total': 0
     }
 
-    finalContent.forEach(section => {
+    plan.forEach((section, index) => {
         addToModalMessage('\n\n\n\n<span class="text-2rem">' + section.section_title + '</span>')
-        addToModalMessage('\n\n' + replaceStarsWithStrong(replaceSourceWithLink(section.section_content)))
+        finalContent[index].forEach(subsection => {
+            addToModalMessage('\n\n<span class="text-1.7rem">' + subsection.subsection_title + '</span>')
+            addToModalMessage('\n\n<span class="text-1.7rem">' + replaceSourceWithLink(subsection.text) + '</span>')
 
-        usage.in += section.tokens.in
-        usage.out += section.tokens.out
+            usage.in += subsection.tokens.prompt_tokens
+            usage.out += subsection.tokens.completion_tokens
+        })
     })
 
     enableBar();
@@ -544,6 +568,46 @@ function sendRequestToDecoder(messages_payload, { signal, max_tokens, do_stream 
             }
         });
     });
+}
+
+async function generateSubsectionContentFromSearch(subsection, section, sourceTexts) {
+    const subsectionContentInput = {
+        SUBSECTION_TITLE: subsection.subsection_title,
+        SUBSECTION_CONTENT_REQUIREMENTS: subsection.subsection_content_requirements,
+        SOURCE_TEXTS: sourceTexts, // Pass source texts
+        SECTION_TITLE: section.section_title, // Include section title for context
+        SECTION_DESCRIPTION: section.description // Include section description for context
+    };
+
+    const subsectionContentPayload = [
+        { role: "system", content: generateSubsectionContentFromSearchPrompt },
+        { role: "user", content: JSON.stringify(subsectionContentInput) },
+        { role: "assistant", content: "" }
+    ];
+
+    try {
+        addToModalMessage(`\n\nDrafting subsection "${subsection.subsection_title}":`);
+
+        const data = await sendRequestToDecoder(subsectionContentPayload, undefined, true); // Use sendRequestToDecoder
+
+        if (!data.choices || data.choices.length === 0) {
+            console.error("Error: data.choices is undefined or empty", data);
+            newActivity(`Failed to draft subsection: ${subsection.subsection_title}`);
+            return null; // Or handle the error as needed
+        }
+
+        const content = data.choices[0].message.content;
+        subsection.subsection_content = content; // Store directly in subsection
+        newActivity(`Drafted subsection: ${subsection.subsection_title}`);
+        addToModalMessage('\n\n' + replaceSourceWithLink(content))
+
+        return data; // Return the generated content (optional)
+
+    } catch (error) {
+        console.error("Error generating subsection content:", error);
+        newActivity(`Failed to draft subsection: ${subsection.subsection_title}: ${error.message}`);
+        return null; // Or handle the error as needed
+    }
 }
 
 async function analyzeSearch(searchData, section) {

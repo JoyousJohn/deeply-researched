@@ -62,68 +62,57 @@ Example format:
 
 Do not include any text before or after the JSON object.`
 
-const refactorPrompt = `You are a research query analyzer. Your task is to analyze a user's initial query, follow-up questions, and their answers, then provide three key pieces of information:
-1. A precise, detailed description of the information being sought
-2. Specific formatting requirements for the response mentioned in or derived from the input information. Do not hallucinate formatting requirements that were not explicitly mentioned in the input.
-3. Required content elements that must be included in the response
 
-Your response must be JSON in this format:
+const refactorPrompt = `You are a research query analyzer. Your task is to analyze a user's initial query, follow-up questions, and their answers, then provide three key pieces of information in JSON format:
+
 {
     "query": <string describing the core information needs>,
-    "content_requirements": <string listing mandatory content elements>
-    "formatting_requirements": <string containing specific textual formatting requirements, if any>,
+    "content_requirements": <array of strings listing mandatory content elements>, // Changed to an ARRAY
+    "formatting_requirements": <string containing specific textual formatting requirements, if any>
 }
 
-Ensure your JSON is valid and well-constructed.
+Ensure your JSON is valid and well-constructed.  Do NOT include any text outside the JSON object.
 
 For the query analysis:
-- Focus solely on identifying the core information need
-- Maintain absolute specificity - identify exact concepts, relationships, or data points
-- Preserve all technical terminology from the original query and follow-up answers
-- Include implicit information needs that are logically necessary
-- Specify temporal, geographical, or contextual constraints
-- Incorporate all relevant context from follow-up Q&A
-- Include any franchises, individuals, companies, etc. that are relevant
-- Begin with "This query seeks information about"
-- Do NOT include any formatting requirements in this section
+- Focus solely on identifying the core information need.
+- Maintain absolute specificity - identify exact concepts, relationships, or data points.
+- Preserve all technical terminology from the original query and follow-up answers.
+- Include implicit information needs that are logically necessary.
+- Specify temporal, geographical, or contextual constraints.
+- Incorporate all relevant context from follow-up Q&A.
+- Include any franchises, individuals, companies, etc., that are relevant.
+- Begin with "This query seeks information about..."
+- Do NOT include any formatting requirements or content elements in this section.
 
 For the required content elements:
-- List all specifically requested topics that must be covered
-- Include any mandatory examples, case studies, or scenarios
-- Specify required data points or metrics that must be included
-- List any specific theories, methods, or approaches that must be discussed
-- Include any historical context or background that must be provided
-- Specify any required definitions or explanations
-- List any mandatory comparisons or contrasts
-- Include any required perspectives or viewpoints
-- Specify any necessary calculations or analyses
-- List any required recommendations or solutions
+- List *each* specifically requested topic that must be covered as a *separate string* in the JSON array.  This is a list of *things* the response should contain.
+- Include any mandatory examples, case studies, or scenarios.
+- Specify required data points or metrics that *must* be included.
+- List any specific theories, methods, or approaches that *must* be discussed.
+- Include any historical context or background that *must* be provided.
+- Specify any required definitions or explanations.
+- List any mandatory comparisons or contrasts.
+- Include any required perspectives or viewpoints.
+- Specify any necessary calculations or analyses.
+- List any required recommendations or solutions.
 
-If any of these were included in the inputs, specify them in the formatting requirements output:
-- Any specific formats (tables, lists, diagrams, etc.)
-- Structure of the response (paragraphs, sections, etc.)
-- Any specific organizational requirements
-- Do not mention any required topics or subjects
-
+For the formatting requirements:
+- Include *only* requirements related to the *textual formatting* of the response. This includes things like:
+    - Specific formats (tables, lists, diagrams, etc.) -  *How* the data should be presented
+    - Structure of the response (paragraphs, sections, etc.) - *How* the content should be organized
+    - Any specific organizational requirements - *How* the text should be laid out.
+- Do *not* include any *content* requirements here.  The formatting requirements should only describe *how* the content should be presented, not *what* the content should be.
 
 Note: If parts of the follow-up answers do not relate to the initial query or questions, ignore these parts.
-
-*Important* Notes: 
-- Formatting requirements must deal solely with textual formatting and not mention required content
-- Required content should be specific elements that must appear in the response, not formatting instructions
-- The query should focus on the core information need without listing specific required elements
 
 Input Format:
 USER_QUERY: [Initial user query text]
 QUESTIONS_ASKED: [Array of follow-up questions that were asked]
 USER_ANSWERS: [Array of user's responses to those questions]
-`
+`;
 
-//- Do not specify a citation format unless otherwise mentioned
 
-// - Example formatting_requirements: "Three sections. A bullet point list showcasing the statistics."
-
-const createSections = `You are tasked with creating a comprehensive document structure. You will be provided with three inputs: 1) a detailed query describing the core information needs, 2) specific formatting requirements, and 3) required content elements. Your task is to create detailed sections that address these requirements while adhering to the specified formatting.
+const createSections = `You are tasked with creating a comprehensive document structure. You will be provided with three inputs: 1) a detailed query describing the core information needs, 2) specific formatting requirements, and 3) an *array* of required content elements. Your task is to create detailed sections that address these requirements while adhering to the specified formatting.
 
 You are to focus on incorporating all three inputs into an organized structure. Do not introduce information beyond what was specified in these inputs. Focus solely on organizing content that fulfills the stated needs.
 
@@ -135,26 +124,26 @@ Guidelines:
 * Ensure each section has a clear purpose directly related to the query, follows the formatting requirements, and incorporates the required content elements.
 * Focus exclusively on organizing and structuring the information specified in the three inputs. Do not infer or add implicit needs.
 * The description for each section should comprehensively detail:
-    * Exactly what information from the query should be included
-    * How to implement the specified formatting requirements
-    * How to incorporate all required content elements
-    * How the information should be presented and structured
-    * Key topics that must be covered based on all inputs
-    * Keep descriptions of the content covered within each section unique and exclusive of the other sections.
+    * Exactly what information from the query should be included. Be specific about *how* the query will be used to generate content for this section.
+    * How to implement the specified formatting requirements. Be specific about how the formatting will be applied to the content of this section.
+    * How to incorporate *each* required content element from the *array*. Be specific about how *each* element will be included and where it should be placed.
+    * How the information should be presented and structured. Describe the logical flow and organization of content within the section.
+    * Key topics that *must* be covered based on all inputs. List the essential topics that the model should address.
+    * Keep descriptions of the content covered within each section unique and exclusive of the other sections. Explicitly state what information is *not* included in this section to avoid overlap.
 
 The sections must not overlap in purpose. Each description should not cover information already mentioned in other sections.
 
-Return a JSON array where each object represents a document section. If there's only one section, still return it in an array. The response must:
+Return a JSON array where each object represents a document section. If there's only one section, still return it in an array. The response MUST:
 
 * Contain ONLY valid JSON with no additional text or formatting. Do not surround the JSON in backticks. Do not add newline characters. Do not format the JSON as a code block. Return the JSON in raw-text.
 * Include exactly these two fields for each section:
-    * "section_title": String containing a clear, professional title for the section.
-    * "description": String containing an extremely detailed explanation of how to implement all requirements from the three inputs for this section. Do not include any newline characters in the description.
+    * "section_title": String containing a clear, professional title for the section. The title should be concise and descriptive of the section's content.
+    * "description": String containing an extremely detailed explanation of how to implement all requirements from the three inputs for this section. The description should be actionable and provide clear instructions for content generation. Do not include any newline characters in the description.
 
 Input Format:
 QUERY: [String describing the core information needs]
 FORMATTING_REQUIREMENTS: [String containing specific formatting requirements]
-CONTENT_REQUIREMENTS: [String listing mandatory content elements]
+CONTENT_REQUIREMENTS: [JSON array of strings listing mandatory content elements]  // Note the array
 
 Example format:
 
@@ -168,198 +157,131 @@ Example format:
         "description": "string: comprehensive explanation of how to implement all requirements from the three inputs for this section"
     }
 ]
-
-`
-
-const reviseFormattingPrompt = `Return only a JSON object that analyzes if a document layout needs modifications to meet specific formatting requirements. The response MUST strictly follow these output formats with no exceptions:
-
-IF NO CHANGES ARE NEEDED:
-You MUST return EXACTLY and ONLY this object:
-{
-    "needed_changes": false
-}
-
-IF CHANGES ARE NEEDED:
-You MUST return an object with ALL these fields:
-{
-    "needed_changes": true,
-    "modified_layout": [array of modified sections],
-    "changes_explanation": "explanation of changes"
-}
-
-Input format:
-1. DOCUMENT_LAYOUT: An array of section objects with the structure:
-    [
-        {
-            "section_title": "string: professional title of the section",
-            "description": "string: comprehensive explanation of section requirements",
-            "search_keywords": ["string: specific search term", ...]
-        },
-        ...
-    ]
-2. FORMAT_REQUIREMENTS: A string containing specific formatting rules
-
-Rules:
-- The response format MUST be exactly as specified above with no exceptions
-- When format requirements are already met, return ONLY { "needed_changes": false }
-- When changes are needed, return ALL THREE fields described above
-- NEVER include modified_layout or changes_explanation when needed_changes is false
-- ALWAYS include both modified_layout and changes_explanation when needed_changes is true
-
-Example when no changes needed:
-Input:
-{
-    "DOCUMENT_LAYOUT": [
-        {
-            "section_title": "Brand Sales",
-            "description": "Sales data by brand",
-            "search_keywords": ["brand", "sales"]
-        },
-        {
-            "section_title": "Sales Trends",
-            "description": "Overall trends analysis",
-            "search_keywords": ["trends", "analysis"]
-        }
-    ],
-    "FORMAT_REQUIREMENTS": "Must have two sections: one for brand sales and one for trends"
-}
-Output:
-{
-    "needed_changes": false
-}
-
-Example when changes needed:
-Input:
-{
-    "DOCUMENT_LAYOUT": [
-        {
-            "section_title": "Energy Drink Sales",
-            "description": "Overview of all energy drink sales",
-            "search_keywords": ["sales", "overview"]
-        }
-    ],
-    "FORMAT_REQUIREMENTS": "Must have separate sections for each brand and a trends section"
-}
-Output:
-{
-    "needed_changes": true,
-    "modified_layout": [
-        {
-            "section_title": "Monster Energy Sales",
-            "description": "Sales data for Monster energy drinks",
-            "search_keywords": ["monster", "sales"]
-        },
-        {
-            "section_title": "Bang Energy Sales",
-            "description": "Sales data for Bang energy drinks",
-            "search_keywords": ["bang", "sales"]
-        },
-        {
-            "section_title": "Sales Trends",
-            "description": "Overall sales trends analysis",
-            "search_keywords": ["trends", "analysis"]
-        }
-    ],
-    "changes_explanation": "Split single overview section into three sections: Monster sales, Bang sales, and overall trends"
-}`
+`;
 
 
-const reviseContentPrompt = `Return only a JSON object that analyzes if a document outline meets specific content requirements. You must modify the outline as needed to make it fully address ALL CONTENT_REQUIREMENTS, including changing, adding, or removing any number of sections. Any changes you describe in changes_explanation MUST be reflected in the modified_outline you return.
+const generateSubsectionsPrompt = `You are a document content generator. You will be provided with the following inputs:
 
-Input format:
-1. DOCUMENT_OUTLINE: An array of section objects with the structure:
-    [
-        {
-            "section_title": "string: title of the section",
-            "description": "string: comprehensive explanation of section content",
-            "search_keywords": ["string: specific search term", ...]
-        },
-        ...
-    ]
-2. CONTENT_REQUIREMENTS: A string containing specific content coverage requirements
+1. SECTION_TITLE: The title of the section for which you need to generate content.
+2. SECTION_DESCRIPTION:  A detailed description of the content required for this section, including specific information needs, formatting requirements, and content elements.
+3. FORMATTING_REQUIREMENTS (Overall): Overall formatting requirements for the entire document.
+4. CONTENT_REQUIREMENTS (Overall): Overall content requirements for the entire document.
 
-Output format (return ONLY this JSON object with no additional text):
-{
-    "meets_requirements": boolean,
-    // The following keys are only included if content changes were required:
-    "modified_outline": [
-        {
-            "section_title": "string: section title",
-            "description": "string: section description addressing requirements",
-            "search_keywords": ["string: relevant search terms", ...]
-        },
-        ...
-    ],
-    "changes_explanation": "string: detailed explanation of all content changes made to meet requirements",
-    "requirements_verification": ["string: explanation of how each content requirement is addressed", ...]
-}
+Your task is to generate detailed subsections for the given section, based on the provided information.  These subsections should break down the section's content into smaller, more manageable chunks.  Each subsection should focus on a specific aspect of the section's overall topic.
 
-Rules:
-- You MUST analyze if the outline addresses ALL elements specified in CONTENT_REQUIREMENTS
-- You MUST modify the outline to fully cover missing or inadequately addressed requirements by:
-  - Adding new sections for missing content
-  - Expanding existing sections to cover requirements more thoroughly
-  - Removing redundant or irrelevant sections
-  - Merging or splitting sections to better organize required content
-  - Adding specific data points or analyses needed
-- The modified_outline you return MUST exactly match the changes you describe in changes_explanation
-- The requirements_verification list MUST explicitly show how each content requirement is addressed
-- If DOCUMENT_OUTLINE fully meets CONTENT_REQUIREMENTS:
-  Return: { "meets_requirements": true }
-- If any content requirements are not met:
-  Return: {
-    "meets_requirements": false,
-    "modified_outline": [fully corrected outline matching your changes_explanation],
-    "changes_explanation": "explanation of changes that exactly match your modified_outline",
-    "requirements_verification": ["verification of each requirement's coverage"]
-  }
+Return a JSON array where each object represents a subsection. The response MUST:
 
-Example:
-Input:
-{
-    "DOCUMENT_OUTLINE": [
-        {
-            "section_title": "Market Overview",
-            "description": "General discussion of current market conditions",
-            "search_keywords": ["market", "overview"]
-        }
-    ],
-    "CONTENT_REQUIREMENTS": "Must include 5-year market forecast, competitive analysis with market shares, and regulatory impact assessment"
-}
+* Contain ONLY valid JSON with no additional text or formatting. Do not surround the JSON in backticks. Do not add newline characters. Do not format the JSON as a code block. Return the JSON in raw-text.
+* Include exactly these two fields for each subsection:
+    * "subsection_title": String containing a clear, professional title for the subsection. The title should be concise and descriptive of the subsection's content.
+    * "subsection_content_requirements": String containing a detailed description of the specific content required for this subsection. This should be derived from the SECTION_DESCRIPTION, FORMATTING_REQUIREMENTS, and CONTENT_REQUIREMENTS.  Be as specific as possible about what information, data, analysis, and writing must be included in this subsection.
 
-Output if changes needed:
-{
-    "meets_requirements": false,
-    "modified_outline": [
-        {
-            "section_title": "Market Overview and Forecast",
-            "description": "Analysis of current market conditions and detailed 5-year growth projections",
-            "search_keywords": ["market", "overview", "forecast", "growth"]
-        },
-        {
-            "section_title": "Competitive Landscape",
-            "description": "Comprehensive analysis of market shares and competitive positioning of key players",
-            "search_keywords": ["competition", "market share", "competitors"]
-        },
-        {
-            "section_title": "Regulatory Analysis",
-            "description": "Assessment of current regulations and their impact on market development",
-            "search_keywords": ["regulations", "compliance", "impact"]
-        }
-    ],
-    "changes_explanation": "Added forecast component to Market Overview, created new Competitive Landscape section for market share analysis, added Regulatory Analysis section",
-    "requirements_verification": [
-        "5-year forecast integrated into Market Overview and Forecast section",
-        "Competitive analysis with market shares covered in new Competitive Landscape section",
-        "Regulatory impact assessed in dedicated Regulatory Analysis section"
-    ]
-}
+Guidelines:
 
-Output if no changes needed:
-{
-    "meets_requirements": true
-}
-`
+* The subsections should comprehensively cover all aspects of the SECTION_DESCRIPTION.
+* Each subsection should have a clear and distinct focus.
+* The subsection_content_requirements should be actionable and provide clear instructions for content generation.  It should be specific about what information should be included, how it should be presented, and any formatting requirements that apply specifically to the subsection.
+* The subsection_content_requirements should refer to specific content elements from the overall CONTENT_REQUIREMENTS where relevant.
+* Do not generate the actual content of the subsections in this prompt.  Only generate the subsection titles and their content requirements.
+
+Input Format:
+
+SECTION_TITLE: [String containing the section title]
+SECTION_DESCRIPTION: [String containing the section description]
+FORMATTING_REQUIREMENTS (Overall): [String containing overall formatting requirements]
+CONTENT_REQUIREMENTS (Overall): [JSON array of strings listing overall content elements]
+
+Example format:
+
+[
+    {
+        "subsection_title": "string: professional title 1 of the subsection",
+        "subsection_content_requirements": "string: detailed description of the specific content required for this subsection"
+    },
+    {
+        "subsection_title": "string: professional title 2 of the subsection",
+        "subsection_content_requirements": "string: detailed description of the specific content required for this subsection"
+    }
+]
+`;
+
+
+const generateSubsectionContentFromSearchPrompt = `
+Generate content for the subsection titled '{SUBSECTION_TITLE}'.
+
+Consider the following information:
+
+*   **Section Title:** {SECTION_TITLE}
+*   **Section Description:** {SECTION_DESCRIPTION}
+*   **Subsection Content Requirements:** {SUBSECTION_CONTENT_REQUIREMENTS}
+*   **Relevant Source Texts:**
+    \`\`\`json
+    {SOURCE_TEXTS}
+    \`\`\`
+
+Instructions:
+
+You will be provided the subject of a subsection, its content requirements, and an array of source materials. Each source has a sourceId and content field. Write **only the raw content** for this specific subsection as part of a longer document. Your task is to **extract and analyze only the information directly relevant to the subsection's content requirements** across all provided sources. Do **not** summarize or cover all information from the source texts. Follow these guidelines:
+
+1.  **Strictly adhere to the subsection's content requirements**—only include information that directly addresses the requirements. Ignore anything irrelevant.
+2.  **Use specific evidence** (examples, quotes, data) from the provided sources to support your points. Every piece of information must be cited with its source ID in square brackets [SRC_x] immediately after the referenced information.
+3.  **Analyze patterns, relationships, and themes** relevant to the subsection's focus across multiple sources. Look for connections and contradictions between different sources.
+4.  **Explain complex ideas clearly** and incorporate multiple perspectives where applicable, especially when different sources offer varying viewpoints.
+5.  **Prioritize depth over breadth**—focus on key insights and their significance, not on covering everything in the source texts.
+
+**Strict Rules:**
+
+*   **NO summaries of individual sources.** Only extract and analyze what is directly relevant to the subsection's content requirements.
+*   **NO introductions, conclusions, summaries, or transitions.** Start immediately with analysis. Do not conclude with "overall" statements.
+*   **NO markdown, bullet points, or section titles.** Write in plain prose.
+*   **NO filler phrases** (e.g., "This subsection will discuss…"). Assume the reader is already within the document.
+*   **NO extraneous information.** Exclude anything not explicitly tied to the subsection's content requirements.
+*   **NO repetition.** Do not excessively repeat facts or texts. Rather, delve deeply into their significance with respect to the content requirements.
+
+**Citation Rules - STRICTLY ENFORCED:**
+
+*   EVERY sentence MUST end with at least one source citation [SRC_x]
+*   Multiple source citations must be in ascending numerical order [SRC_1][SRC_2]
+*   Citations must use the exact format [SRC_x] - no variations allowed
+*   Any uncited sentence will be considered invalid output
+*   Citations must appear immediately after the relevant information
+*   When combining information from multiple sources, cite all relevant sources
+
+**Invalid Citation Examples:**
+
+*   Missing citation: "The temperature increased by 2.5 degrees"
+*   Wrong format: (SRC_1) or [Source 1] or [1]
+*   Delayed citation: "The temperature increased by 2.5 degrees. Later that year..." [SRC_1]
+
+**Valid Citation Examples:**
+
+*   "The temperature increased by 2.5 degrees" [SRC_1]
+*   "Global emissions rose steadily" [SRC_1][SRC_2]
+*   "While some regions saw decreases [SRC_1], others experienced increases" [SRC_2]
+
+**Output Validation Requirements:**
+
+1.  Every paragraph must contain at least one citation
+2.  No uncited claims or analysis are allowed
+3.  Each source citation must use the exact [SRC_x] format
+4.  Citations must appear immediately after the referenced information
+5.  Analysis combining multiple sources must cite all relevant sources
+
+**Before submitting your response, verify that:**
+
+*   Every sentence has at least one citation
+*   All citations use the correct [SRC_x] format
+*   No information appears without a corresponding citation
+*   Citations are properly placed immediately after the referenced information
+
+**Output Format:**
+
+*   Raw, continuous text that flows naturally within a larger work.
+*   Break up large and long blocks of text into paragraphs separated by new lines for easier reading.
+*   Directly address the content requirements's points in detail, using **only the most relevant evidence** from all available sources.
+*   Every piece of information must be followed by its source ID(s) in square brackets.
+`;
+
 
 
 const reviseDocumentPrompt = `Analyze if this OUTLINE will effectively support creating a final document that meets the specified requirements. Return a JSON object in one of these formats:
@@ -556,6 +478,8 @@ Before finalizing response:
 - Ensure comprehensive coverage of key aspects
 - Confirm specificity and clarity
 - Check that the search term is properly focused`
+
+
 
 const selectOnlySourcesPrompt = `Task: Analyze a research section description and identify the most relevant information sources (maximum 20) from the provided dictionary, prioritizing the most critical and directly relevant sources.
 

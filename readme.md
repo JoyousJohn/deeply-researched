@@ -98,6 +98,7 @@ Different models of similar sizes have shown vastly different performance. Many 
 | GPT-4o mini | Excellent |
 | Nova Pro 1.0 | Excellent |
 | Mistral Large 2411 | Excellent |
+| GPT-4o | Excellent |
 | | |
 | Llama 3.3 70B Instruct | Great |
 | Llama 3.1 70B Instruct | Great |

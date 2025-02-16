@@ -27,6 +27,8 @@ let elapsedTime = 0;
 
 const activityTimers = {};
 
+let completeSubsections = 0;
+
 setPhase('waitingForInput')
 
 function setPhase(newPhase) {
@@ -44,409 +46,432 @@ function sendMessage() {
     newModalUserMessage(input)
     nextPhase()
 }
-
 function nextPhase() {
+    let payloads = [];
     let payload = {
         model: decoderModelId,
-        // repetition_penalty: 1.1,
         temperature: 0.7,
         top_p: 0.9,
-        // top_k: 40,
-        // max_tokens: 2048,
-        // response_format: { type: "json_object" }
     };
 
     if (phase === 'waitingForInput') {
-
-        setPhase('confirmingValidTopic')
-
+        setPhase('confirmingValidTopic');
         $('.name, .model-name').fadeOut();
-
         payload['messages'] = [
-            {role: "system", content: isResearchTopic},
-            {role: "user", content: "The user's query is: " + input},
-            {role: "assistant", content: '{'}
-        ]
-        newActivity('Understanding the request', undefined, undefined, true)
+            { role: "system", content: isResearchTopic },
+            { role: "user", content: "The user's query is: " + input },
+            { role: "assistant", content: '{' }
+        ];
+        payloads = [payload];
+        newActivity('Understanding the request', undefined, undefined, true);
         stats['start_time'] = new Date();
-        startTimer()
-        
+        startTimer();
 
     } else if (phase === 'refiningRequest') {
         payload['messages'] = [
-            {role: "system", content: narrowQuestionPrompt},
-            {role: "user", content: "The user's research query is: " + input},
-            {role: "assistant", content: "{"}
-        ]
+            { role: "system", content: narrowQuestionPrompt },
+            { role: "user", content: "The user's research query is: " + input },
+            { role: "assistant", content: "{" }
+        ];
+        payloads = [payload];
         newActivity('Discerning the task', undefined, undefined, true);
-    
-    }  else if (phase === 'refiningQuestionsAsked') {
+
+    } else if (phase === 'refiningQuestionsAsked') {
+        const inputs = {
+            USER_QUERY: researchRequest,
+            QUESTIONS_ASKED: questions,
+            USER_ANSWERS: input
+        };
 
         payload['messages'] = [
-            {role: "system", content: refactorPrompt},
-            {role: "user", content: `
-                USER_QUERY: ${researchRequest}
-                QUESTIONS_ASKED: ${questions}
-                USER_ANSWERS: ${input}
-            `},
-            {role: "assistant", content: "{"}
-        ]
+            { role: "system", content: refactorPrompt },
+            {
+                role: "user",
+                content: JSON.stringify(inputs)
+            },
+            { role: "assistant", content: "{" }
+        ];
+        payloads = [payload];
 
-        setPhase('refineTaskWithAnsweredQuestions')
+        setPhase('refineTaskWithAnsweredQuestions');
         newActivity('Refining questions answered');
         newActivity("Refining the task", undefined, undefined, true);
-    
 
     } else if (phase === 'createSections') {
+        const inputs = {
+            query: refinedRequest,
+            formatting_requirements: refinedFormattingRequirements,
+            content_requirements: refinedContentRequirements
+        };
+
         payload['messages'] = [
-            {role: "system", content: createSections},
-            {role: "user", content: `
-                QUERY: ${refinedRequest}
-                FORMATTING_REQUIREMENTS: ${refinedFormattingRequirements}
-                CONTENT_REQUIREMENTS: ${refinedContentRequirements}`
+            { role: "system", content: createSections },
+            {
+                role: "user",
+                content: JSON.stringify(inputs)
             },
-            {role: 'assistant', content:'['}
-        ]
+            { role: 'assistant', content: '[' }
+        ];
+        payloads = [payload];
 
         newActivity('Creating a search plan', undefined, undefined, true);
-    
-    } else if (phase === 'reviseFormatting') {
-        payload['messages'] = [
-            {role: "system", content: reviseFormattingPrompt},
-            {role: "user", content: `
-                DOCUMENT_LAYOUT: ${JSON.stringify(plan)}
-                FORMAT_REQUIREMENTS: ${refinedFormattingRequirements}`
-            },
-            {role: "assistant", content: "{"}
-        ]
 
-        newActivity('Confirming document adherence', undefined, undefined, true);
+    } else if (phase === 'generateSubsections') {
+        plan.forEach(section => { // Iterate over the plan
+            newActivity('Generating subsection', section.section_title, undefined, true);
+            section.timer_id = latestTimerId();
+            reviseDocumentForSection(section); // Call for each section
+        });
 
-    } else if (phase === 'reviseContent') {
-        payload['messages'] = [
-            {role: "system", content: reviseContentPrompt},
-            {role: "user", content: `
-                DOCUMENT_OUTLINE: ${JSON.stringify(plan)}
-                CONTENT_REQUIREMENTS: ${refinedContentRequirements}`
-            },
-            {role: "assistant", content: "{"}
-        ]
+        return;
 
-        newActivity('Confirming content adherence', undefined, undefined, true);
-
-    } else if (phase === 'reviseDocument') {
-        payload['messages'] = [
-            {role: "system", content: reviseDocumentPrompt},
-            {role: "user", content: `
-                DOCUMENT_OUTLINE: ${JSON.stringify(plan)}
-                FORMAT_REQUIREMENTS: ${refinedFormattingRequirements},
-                CONTENT_REQUIREMENTS: ${refinedContentRequirements}`
-            },
-            {role: "assistant", content: "{"}
-        ]
-
-        newActivity('Confirming document adherence', undefined, undefined, true);
-    
     } else if (phase === 'done') {
 
-        let researchStr = ''
+        let researchStr = '';
 
         finalContent.forEach(section => {
-            researchStr += section.section_title
-            researchStr += section.section_content + '\n\n'
-        })
+            researchStr += section.section_title;
+            researchStr += section.section_content + '\n\n';
+        });
 
         payload['messages'] = [
-            {role: "assistant", content: "Here is the in-depth research you requested: " + researchStr},
-            {role: "user", content: input}
-        ]
+            { role: "assistant", content: "Here is the in-depth research you requested: " + researchStr },
+            { role: "user", content: input }
+        ];
 
         newActivity('Responding to request...', undefined, undefined, false);
 
     }
 
-    makeRequest(payload);
+    makeRequest(payloads, handleApiResponse); // <--- THIS IS THE KEY CHANGE
 }
 
 
-function latestTimerId() {
-    return parseInt(Object.keys(activityTimers)[0]);
+function reviseDocumentForSection(section) {
+    const subsectionsInput = {
+        SECTION_TITLE: section.section_title,
+        SECTION_DESCRIPTION: section.description, // If you have a description property
+        FORMATTING_REQUIREMENTS: refinedFormattingRequirements,
+        CONTENT_REQUIREMENTS: refinedContentRequirements
+    };
+
+    const subsectionsPayload = {
+        model: decoderModelId,
+        temperature: 0.7,
+        top_p: 0.9,
+        messages: [
+            { role: "system", content: generateSubsectionsPrompt },
+            { role: "user", content: JSON.stringify(subsectionsInput) },
+            { role: "assistant", content: "[" } // Or "{" if your LLM returns an object
+        ]
+    };
+
+    makeRequest([subsectionsPayload], (responses, error) => {
+        handleApiResponse(responses, error, section);
+        completeSubsections++; // Decrement the counter when a request completes
+
+        // Check if there are no active requests after this one completes
+        if (completeSubsections === plan.length) {
+            setPhase('Drafting')
+            beginSearches(); // Call beginSearches if no active requests
+        }
+    });
+    
 }
+
 
 let content;
-function makeRequest(payload) {
-    fetch(decoderBase, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${decoderKey}`
-      },
-      body: JSON.stringify(payload)
-    })
-    .then(response => {
-        if (!response.ok) {
-            newActivity(`Received HTTP error ${response.status}`)
-            response.json().then(errorMessage => {
-                newActivity(`Error message: ${Object.values(errorMessage).map(value => JSON.stringify(value)).join(', ')}`);
-                clearTimeout(timer)
-            });
-            throw new Error(`HTTP error! status: ${response.status}`);
+
+function tryParseJson(content) {
+
+    try {
+        console.log(phase)
+        console.log(phase === 'generateSubsections')
+        content = JSON.parse(content);
+
+        if (phase === 'createSections' || phase === 'generateSubsections') {
+
+            console.log('pphase is cereateSections or generateSubsections 1')
+            console.log(content)     
+
+            console.log('1')
+            try {
+
+                
+                if (typeof content === 'object' && !Array.isArray(content)) {
+                    console.log('2')
+
+                    console.log("(2) Attempting to fix createSections by wrapping obj in array");
+                    return [content];
+                } else if (typeof content === 'string' && !content.startsWith('[')) {
+                    console.log('3')
+
+                    content = '[' + content;
+                    console.log(' adding opening squar ebracket')
+                } else {
+                    console.log('</3')
+                }
+            } catch (e) {
+                console.log('0')
+                console.log(e)
+            }
+            console.log('4')
+
         }
-        return response.json();
-    })
-    .then(fullResponse => {
-        // console.log('Full response received:', fullResponse);
+        console.log('5')
+
+
+        console.log('returning content:')
+        console.log(content)
+        return content
+
+    } catch (e) {
+        // console.error("Initial JSON parse failed:", e);
+        console.log("Attempting JSON healing...");
+
+        content = content.trim().replace('```json', '').replaceAll('```', '').replaceAll('\n', '').replaceAll(']"', ']');
+        content = content.replace(/^\s+/, '');
+
+        if (phase === 'createSections' || phase === 'generateSubsections') {
+            console.log('phase is createSections or generateSubsections2')
+            if (!content.startsWith(phasePrefixAdditions.createSections)) {
+                content = phasePrefixAdditions.createSections + content;
+            }
+
+            try { // Nested try-catch for createSections specific array wrapping
+                let parsedContent = JSON.parse(content);
+                if (typeof parsedContent === 'object' && !Array.isArray(parsedContent)) {
+                    console.log("(2) Attempting to fix createSections by wrapping obj in array");
+                    parsedContent = [parsedContent];
+                }
+                return parsedContent; // Return the potentially fixed content
+            } catch (e2) {
+                console.error("createSections array wrapping fix failed:", e2);
+                console.log("Content at error:", content);
+            }
+
+        // } else if (phase === 'generateSubsections') {
+
+        //     try {
+        //         content = '[' + content + ']'
+        //         content = JSON.parse(content);
+        //         return content;
+        //     } catch (e2) {
+        //         console.error("generateSubsections array wrapping fix failed:", e2);
+        //         console.log("Content at error:", content);
+        //     }
+        
+        } else {
+            if (content.charAt(content.length - 1) !== '}') {
+                const lastClosingBraceIndex = content.lastIndexOf('}');
+                if (lastClosingBraceIndex !== -1) { // Check if brace exists
+                    content = content.substring(0, lastClosingBraceIndex + 1);
+                }
+            }
+            if (content.charAt(0) !== '{') {
+                content = '{' + content;
+            }
+        } 
 
         try {
-            content = fullResponse.choices[0].message.content;
-            console.log(content);
-
-            if (phase === 'createSections') {
-                content = JSON.parse(content);
-                if (typeof content === 'object' && !Array.isArray(content)) {
-                    console.log("(1) Attempting to fix createSections by wrapping obj in array")
-                    content = [content];
-                    console.log(content)
-                }
-            }
-
-            else if (phase !== 'done') {
-                content = JSON.parse(content);
-            }
-                     
-        } catch (e) {
-
-            try {
-                // if (phase === 'createSections' || phase === 'refineTaskWithAnsweredQuestions' || phase === 'reviseFormatting' || phase === 'reviseContent' || phase === 'refiningQuestionsAsked') {
-                //     content = content.replace(/\s+/g, ' ')
-                // }
-    
-                content = content.trim().replace('```json', '').replaceAll('```', '').replaceAll('\n', '').replaceAll(']"', ']');
-
-                content = content.replace(/^\s+/, '');
-
-                console.log('content after trimming stufs: ', content)
-
-                if (phase !== 'createSections') {
-
-                    if (content.charAt(content.length - 1) !== '}') {
-                        const lastClosingBraceIndex = content.lastIndexOf('}');
-                        console.log(content)
-                        console.log('last char wasn not closing brace, splitting at last closing closing brace...')
-                        content = content.substring(0, lastClosingBraceIndex + 1);
-                        console.log(content)
-                    }
-                    if (content.charAt(0) !== '{') {
-                        content = '{' + content;
-                        console.log('adding bracket, new json:')
-                        console.log(content)
-                    }
-                } 
-                
-                else if (phase === 'createSections') {
-                    // Check if content starts with the prefix, if not, prepend it
-                    if (!content.startsWith(phasePrefixAdditions.createSections)) {
-                        console.log('adding prefix to content')
-                        content = phasePrefixAdditions.createSections + content;
-                    }
-
-                    if (typeof content === 'object' && !Array.isArray(content)) {
-                        console.log("(2) Attempting to fix createSections by wrapping obj in array")
-                        content = [content];
-                        console.log(content)
-                    }
-
-                    console.log(content)
-                }
-
-                content = JSON.parse(content)
-    
-            } catch {
-
-                console.error("Error parsing JSON response:", e);
-                console.log("Full response JSON:", fullResponse);
-                newActivity("Error in chaining.")
-                throw e;
-            }
-
+            return JSON.parse(content); // Retry parsing after healing
+        } catch (e2) {
+            console.error("JSON healing failed:", e2);
+            console.log("Content at error:", content);
+            throw e2; // Re-throw the final parsing error
         }
-        const usage = fullResponse.usage
-        // console.log("Content: ", content)
-    
-        if (phase === 'refiningRequest') {
+    }
+}
 
-            const preamble = content.preamble
-            questions = content.questions
 
-            let msgStr = preamble + '\n'
-            questions.forEach((question, index) => {
-                msgStr += `\n${index + 1}.  ` + question
-            })
-            newModelMessageElm()
-            addToModalMessage(msgStr)
+function makeRequest(payloads, responseHandler) {
+    if (!Array.isArray(payloads)) {
+        payloads = [payloads];
+    }
 
-            addTokenUsageToActivity(usage, undefined, latestTimerId())
-            setPhase('refiningQuestionsAsked')
-            newActivity('Waiting for task clarification');
-            enableBar();
-
-        } else if (phase === 'confirmingValidTopic') {
-
-            console.log(content)
-
-            addTokenUsageToActivity(usage, undefined, latestTimerId())
-
-            if (content.is_valid_request === true) {
-                // alert(Object.keys(activityTimers)[0])
-                newActivity('Request confirmed');
-                setPhase('refiningRequest');
-                nextPhase();
-                researchRequest = input;
-            } else {
-                newModelMessageElm();
-                addTokenUsageToActivity(usage)
-                newActivity('Prompt was not researchable');
-                newActivity('Awaiting new instructions');
-                setPhase('waitingForInput');
-                addToModalMessage("I apologize, but I cannot proceed with this request. " + content.explanation);
-                enableBar();
+    const promises = payloads.map(payload => {
+        return fetch(decoderBase, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${decoderKey}`
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(response => {
+            if (!response.ok) {
+                newActivity(`Received HTTP error ${response.status}`);
+                return response.json().then(errorMessage => {
+                    newActivity(`Error message: ${Object.values(errorMessage).map(value => JSON.stringify(value)).join(', ')}`);
+                    clearTimeout(timer);
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                });
             }
+            return response.text(); // or response.json() if your API directly returns JSON
+        });
+    });
 
-            // start the interval here
-            setInterval(() => {
-                let minutes = (elapsedTime / 60);
-                let rpm = (overallTokens['requests'] / minutes).toFixed(1);
-                if (rpm > overallTokens['requests']) {
-                    rpm = overallTokens['requests'];
-                }
-                $('.rpm').text(rpm)
-            }, 3000);
-
-        } else if (phase === 'refineTaskWithAnsweredQuestions') {
-
-            refinedRequest = content.query;
-            refinedFormattingRequirements = content.formatting_requirements;
-            refinedContentRequirements = content.content_requirements
-
-            newModelMessageElm(true);
-            addToModalMessage('I refined the query: ' + refinedRequest)
-            addToModalMessage('\n\nI will follow these formatting requirements: ' + refinedFormattingRequirements)
-            addToModalMessage('\n\nI will include these content requirements: ' + refinedContentRequirements)
-
-            addQueryToOutline(content)
-
-            addTokenUsageToActivity(usage, undefined, latestTimerId())
-
-            setPhase('createSections')
-            nextPhase();
-
-
-        } else if (phase === 'createSections') {
-
-            plan = content;
-            const sectionTitles = plan.map(section => section.section_title);
-            // console.log(sectionTitles)
-            // const sectionTitlesList = sectionTitles.join(', ').replace(/, ([^,]*)$/, ', and $1');
-            
-            addToModalMessage(`\n\nI have formulated a layout for your report, which will contain the following ${plan.length} sections:.`);
-
-            addToModalMessage('<ul>')
-            sectionTitles.forEach(sectionTitle => {
-                addToModalMessage(`<li>${sectionTitle}</li>`)
-            })
-            addToModalMessage('<ul>')
-
-            addToModalMessage(`\n\nI will begin by gathering sources and content required for the ${sectionTitles[0]} section by following this guide: ${plan[0].description}`)
-            
-            $('.current-section').text(`Working on section 1/${sectionTitles.length}`)
-
-            addTokenUsageToActivity(usage, undefined, latestTimerId())
-            newActivity('Planned an outline');
-            addPlanToOutline()
-
-            // beginSearches();
-
-
-            setPhase('reviseDocument')
-            nextPhase();
-            // nextPhase()
-
-        } else if (phase === 'reviseFormatting') {
-
-            addTokenUsageToActivity(usage, undefined, latestTimerId())
-
-            const needed_changes = content.needed_changes
-
-            console.log(content)
-
-            if (!needed_changes) {
-                setPhase('reviseContent')
-                newActivity('Layout conforms with formatting')
-                nextPhase();
-            } else {
-                newActivity('Modified layout to follow formatting')
-                // newModelMessageElm(true)
-                addToModalMessage('\n\nI made some formatting changes to the layout: ' + content.changes_explanation)
-                priorPlans.push(plan)
-                plan = content.modified_layout
-                nextPhase(); // iterate again
-            }
-
-        } else if (phase === `reviseContent`) {
-
-            addTokenUsageToActivity(usage, undefined, latestTimerId())
-
-            const meets_requirements = content.meets_requirements
-
-            console.log(content)
-
-            if (meets_requirements) {
-                newActivity('Layout content conforms with requirements')
-                beginSearches();
-            } else {
-                newActivity('Modified layout to follow content requirements')
-                addToModalMessage('\n\nI modified the layout to fulfill all content requirements: ' + content.changes_explanation)
-                priorPlans.push(plan)
-                plan = content.modified_outline
-                addPlanToOutline(plan)
-                nextPhase(); // iterate again
-            }
-
-        } else if (phase === `reviseDocument`) {
-
-            addTokenUsageToActivity(usage, undefined, latestTimerId())
-
-            const requirements_met = content.requirements_met
-
-            console.log(content)
-
-            if (requirements_met) {
-                newActivity('Layout conforms with document requirements')
-                beginSearches();
-            } else {
-                newActivity('Modified layout to follow document requirements')
-                addToModalMessage('\n\nI modified the layout to fulfill formatting requirements: ' + content.explanation.format)
-                addToModalMessage('\n\nI modified the layout to fulfill content requirements: ' + content.explanation.content)
-                priorPlans.push(plan)
-                plan = content.rewritten_layout
-                planChanges = content.explanation
-                addPlanToOutline(plan)
-                nextPhase(); // iterate again
-            }
-
-        } else if (phase === 'done') {
-            newModelMessageElm(false);
-            addToModalMessage(content);
-            newActivity('Responded.')
-            enableBar();
-        }
-    })
-    .catch(error => console.error('Error:', error));
+    Promise.all(promises)
+        .then(rawResponses => {  // <--- rawResponses are now text strings
+            responseHandler(rawResponses); // Call the handler with RAW responses
+        })
+        .catch(error => {
+            console.error("Error in makeRequest:", error);
+            responseHandler(null, error); // Call handler with error
+        });
 }
   
 
+function handleApiResponse(responses, error, section) {
+    if (error) {
+        console.error("Error received in handleApiResponse:", error);
+        return;
+    }
 
-  function addTokenUsageToActivity(usage, url, timerId) {
+    if (!responses) {
+        console.error("No responses received in handleApiResponse");
+        return;
+    }
+
+    if (!Array.isArray(responses)) {
+        responses = [responses];
+    }
+
+    responses.forEach(response => { 
+        let fullResponse;
+        let content;
+
+        try {
+            fullResponse = JSON.parse(response); 
+            content = fullResponse.choices[0].message.content; 
+
+            try {
+                content = tryParseJson(content); 
+            } catch (jsonError) {
+                console.error("JSON parse/healing error:", jsonError);
+                return; 
+            }
+
+            const usage = fullResponse.usage; 
+
+            if (phase === 'refiningRequest') {
+                const preamble = content.preamble;
+                questions = content.questions;
+                let msgStr = preamble + '\n';
+                questions.forEach((question, index) => {
+                    msgStr += `\n${index + 1}.  ` + question;
+                });
+                newModelMessageElm();
+                addToModalMessage(msgStr);
+                addTokenUsageToActivity(usage, undefined, latestTimerId());
+                setPhase('refiningQuestionsAsked');
+                newActivity('Waiting for task clarification');
+                enableBar();
+
+            } else if (phase === 'confirmingValidTopic') {
+                console.log(content);
+                addTokenUsageToActivity(usage, undefined, latestTimerId());
+                if (content.is_valid_request === true) {
+                    newActivity('Request confirmed');
+                    setPhase('refiningRequest');
+                    nextPhase();
+                    researchRequest = input;
+                } else {
+                    newModelMessageElm();
+                    addTokenUsageToActivity(usage);
+                    newActivity('Prompt was not researchable');
+                    newActivity('Awaiting new instructions');
+                    setPhase('waitingForInput');
+                    addToModalMessage("I apologize, but I cannot proceed with this request. " + content.explanation);
+                    enableBar();
+                }
+                setInterval(() => {
+                    let minutes = (elapsedTime / 60);
+                    let rpm = (overallTokens['requests'] / minutes).toFixed(1);
+                    if (rpm > overallTokens['requests']) {
+                        rpm = overallTokens['requests'];
+                    }
+                    $('.rpm').text(rpm);
+                }, 3000);
+
+            } else if (phase === 'refineTaskWithAnsweredQuestions') {
+                refinedRequest = content.query;
+                refinedFormattingRequirements = content.formatting_requirements;
+                refinedContentRequirements = content.content_requirements;
+                newModelMessageElm(true);
+                addToModalMessage('I refined the query: ' + refinedRequest);
+                addToModalMessage('\n\nI will follow these formatting requirements: ' + refinedFormattingRequirements);
+                addToModalMessage('\n\nI will include these content requirements: ' + refinedContentRequirements.join(", "));
+                addQueryToOutline(content);
+                addTokenUsageToActivity(usage, undefined, latestTimerId());
+                setPhase('createSections');
+                nextPhase();
+
+            } else if (phase === 'createSections') {
+
+                plan = content;
+                if (!Array.isArray(plan)) {
+                    console.error("Error: The 'plan' is not an array. Check the model's response.");
+                    return;
+                }
+                const sectionTitles = plan.map(section => section.section_title);
+                addToModalMessage(`\n\nI have formulated a layout for your report, which will contain the following ${plan.length} sections:.`);
+                addToModalMessage('<ul>');
+                sectionTitles.forEach(sectionTitle => {
+                    addToModalMessage(`<li>${sectionTitle}</li>`);
+                });
+                addToModalMessage('</ul>');
+                if (plan.length > 0) {
+                    addToModalMessage(`\n\nI will begin by gathering sources and content required for the ${sectionTitles[0]} section by following this guide: ${plan[0].description}`);
+                    $('.current-section').text(`Working on section 1/${sectionTitles.length}`);
+                } else {
+                    addToModalMessage("\n\nNo sections were generated. Check the input requirements.");
+                    $('.current-section').text("No sections.");
+                }
+
+                addTokenUsageToActivity(usage, undefined, latestTimerId());
+                newActivity('Planned an outline');
+                addPlanToOutline();
+                setPhase('generateSubsections');
+                nextPhase();
+
+            } else if (phase === 'generateSubsections') {
+                // content here is the parsed JSON from generateSubsectionsPrompt
+            
+                if (!Array.isArray(content) || content.length === 0) {
+                    console.error("Error: Subsections response is not a valid array. Cannot proceed with document revision.");
+                    return; 
+                }
+
+                console.log('made subsection')
+                section.subsections = content; // Directly assign the 'content' array to the passed 'section'
+
+                let sub = '';
+                content.forEach(subsection => {
+                    sub += '<div class="outline-sub"><span class="outline-sub-title">' + subsection.subsection_title + '</span>: ' + subsection.subsection_content_requirements + '</div>\n\n'
+                })
+                $('.outline-subsections').eq(completeSubsections).append(sub)
+
+                addTokenUsageToActivity(usage, section.section_title, section.timer_id); // Ensure 'usage' is in scope
+
+            } else if (phase === 'done') {
+                newModelMessageElm(false);
+                addToModalMessage(content);
+                newActivity('Responded.');
+                enableBar();
+            }
+
+        } catch (parseError) {
+            console.error("Error parsing fullResponse:", parseError);
+            return; // Handle fullResponse parsing error
+        }
+    });
+}
+
+
+
+
+function addTokenUsageToActivity(usage, url, timerId) {
 
     // alert(timerId)
 
@@ -470,6 +495,7 @@ function makeRequest(payload) {
     overallTokens['requests']++
 
     if (url) {
+        console.log("URL: ", url)
         const $element = $(`.token-count[data-activity-url="${url}"]:not(.activity-error)`).first();
         $element.text(usage.prompt_tokens + ' / ' + usage.completion_tokens + ' / ' + usage.total_tokens + ' tokens' + totalTime + cost);
         $element.parent().find('.activity-header').removeClass('activity-understanding');
@@ -478,7 +504,7 @@ function makeRequest(payload) {
     }
 
     if (timerId) {
-        // console.log(`Stopping timer with id: ${timerId}`)
+        console.log(`Stopping timer with id: ${timerId}`)
         stopActivityTimer(timerId);
     }
 
@@ -526,6 +552,9 @@ function makeRequest(payload) {
 
 }
 
+function latestTimerId() {
+    return parseInt(Object.keys(activityTimers).pop());
+}
 
 function newTimerId() {
     return $('.activity-header').length + 1;
@@ -555,12 +584,13 @@ function newActivity(activity, url, is_error, add_timer) {
         const timerId = newTimerId();
         let secondsElapsed = 0;
         const $tokenCount = $newActivityElm.find('.token-count');
-    
         $tokenCount.text(`Elapsed time: 0.0s`).attr('data-timer-id', timerId);
+
         activityTimers[timerId] = setInterval(() => {
             secondsElapsed += 0.1; // Increment by 0.1 seconds
             $tokenCount.text(`${secondsElapsed.toFixed(1)}s`); // Show one decimal place
         }, 100); // Update every 100 milliseconds
+
     }
    
 }

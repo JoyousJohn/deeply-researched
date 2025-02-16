@@ -21,11 +21,12 @@ function addPlanToOutline() {
             </div>
 
             <div class="outline-section-desc none" data-outline-section=${index}>${section.description}</div>
+            <div class="outline-subsections flex flex-col gap-y-1rem"></div>
 
         </div>`)
 
         $outlineSection.click(function() {
-            const $desc = $(this).closest('.flex-col').find('.outline-section-desc, .outline-section-keywords');
+            const $desc = $(this).closest('.flex-col').find('.outline-section-desc, .outline-section-keywords, .outline-subsections');
             const $dropdown = $(this).find('.section-dropdown');
             if ($desc.is(':visible')) {
                 $desc.slideUp('fast');
@@ -74,7 +75,7 @@ function addQueryToOutline(context) {
 
         <div class="outline-section-desc none">${query}</div>
         <div class="outline-section-keywords none">Formatting: ${formatting_requirements}</div>
-        <div class="outline-section-keywords none">Content: ${content_requirements}</div>
+        <div class="outline-section-keywords none">Content: ${content_requirements.join(", ")}</div>
 
     </div>`)
 

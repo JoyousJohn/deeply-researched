@@ -91,6 +91,10 @@ body {
     font-family: 'Inter Tight', sans-serif;
 }
 
+.text-1p7rem {
+    font-size: 1.7rem;
+}
+
 .text-1p2rem {
     font-size: 1.2rem;
 }
