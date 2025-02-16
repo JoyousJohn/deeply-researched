@@ -75,20 +75,42 @@ const providerMap = {
     'googleapis': 'Google',
     'anthrophic': 'Anthropic',
     'deepinfra': 'DeepInfra',
-    'sambanova': 'SambaNova'
+    'sambanova': 'SambaNova',
+    'azure': 'Azure',
+    'fireworks': 'Fireworks AI',
+    'github': 'GitHub AI',
+    'groq': 'Groq',
+    'hyperbolic': 'Hyperbolic',
+    'mistral': 'Mistral',
+    'openrouter': 'OpenRouter',
+    'together': 'Together AI'
 }
 
 function getProvider() {
     let url = decoderBase;
-    const urlPattern = /^(?:https?:\/\/)?(?:www\.)?([^\/]+)(?:\/.*)?$/;
+    const urlPattern = /^(?:https?:\/\/)?(?:www\.)?([^\/:]+)(?::\d+)?(?:\/.*)?$/;
     const match = url.match(urlPattern);
+    
     if (match && match[1]) {
-        url = match[1].split('.').slice(1, -1).join('.'); // Extracts everything except the last part of the domain
-        if (url in providerMap) {
-            url = providerMap[url]
+        const domain = match[1];
+        
+        if (domain === 'localhost') {
+            const portPattern = /:\d+/;
+            const portMatch = url.match(portPattern);
+            const port = portMatch ? portMatch[0] : '';
+            return `localhost${port}`;
         }
-        return url;
+        
+        const domainParts = domain.split('.');
+        if (domainParts.length >= 2) {
+            const mainDomain = domainParts[domainParts.length - 2];
+            if (mainDomain in providerMap) {
+                return providerMap[mainDomain];
+            }
+            return mainDomain;
+        }
     }
+    
     return url;
 }
 
@@ -106,7 +128,7 @@ function setGlobalSelectedModelVars() {
     decoderBase = settings.allKeySettings[selectedModelId].decoderBase
     decoderKey = settings.allKeySettings[selectedModelId].decoderKey
 
-    $('.model-name').html(decoderModelId.replaceAll('-', ' ') + '<br>on ' + getProvider())
+    $('.model-name').html(decoderModelId + '<br>' + getProvider())
 
 }
 
@@ -204,7 +226,7 @@ $(document).ready(function() {
         const maxSourcesValue = $('#max-sources').val();
         const savedMessage = $('.saved-message');
 
-        if (maxSourcesValue >= 10 && maxSourcesValue <= 20) {
+        if (maxSourcesValue >= 5 && maxSourcesValue <= 10) {
             settings.maxSources = parseInt(maxSourcesValue);
             localStorage.setItem('settings', JSON.stringify(settings));
 
@@ -228,15 +250,15 @@ $(document).keydown(function(event) {
         $('.settings-wrapper').scrollTop(0).hide();
         $('.base-presets').hide();
     }
-    else if (event.key === "S" || event.key === "s") {
-        if ($(document.activeElement).is('textarea')) return
-        if ($('.settings-wrapper').is(':visible') && !$(document.activeElement).is('input')) {
-            $('.settings-wrapper').scrollTop(0).hide();
-        } else if (!$(document.activeElement).is('input')) {
-            $('.settings-wrapper').show();
-            populateInputs();
-        }
-    }
+    // else if (event.key === "S" || event.key === "s") {
+    //     if ($(document.activeElement).is('textarea')) return
+    //     if ($('.settings-wrapper').is(':visible') && !$(document.activeElement).is('input')) {
+    //         $('.settings-wrapper').scrollTop(0).hide();
+    //     } else if (!$(document.activeElement).is('input')) {
+    //         $('.settings-wrapper').show();
+    //         populateInputs();
+    //     }
+    // }
     else if (event.key === "u" || event.key === "U") {
         if ($(document.activeElement).is('textarea')) return
         $('#stats-toggle').prop('checked', function(i, value) {

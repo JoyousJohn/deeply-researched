@@ -173,6 +173,7 @@ function latestTimerId() {
     return parseInt(Object.keys(activityTimers)[0]);
 }
 
+let content;
 function makeRequest(payload) {
     fetch(decoderBase, {
       method: 'POST',
@@ -196,11 +197,20 @@ function makeRequest(payload) {
     .then(fullResponse => {
         // console.log('Full response received:', fullResponse);
 
-        let content;
         try {
             content = fullResponse.choices[0].message.content;
             console.log(content);
-            if (phase !== 'done') {
+
+            if (phase === 'createSections') {
+                content = JSON.parse(content);
+                if (typeof content === 'object' && !Array.isArray(content)) {
+                    console.log("(1) Attempting to fix createSections by wrapping obj in array")
+                    content = [content];
+                    console.log(content)
+                }
+            }
+
+            else if (phase !== 'done') {
                 content = JSON.parse(content);
             }
                      
@@ -239,6 +249,13 @@ function makeRequest(payload) {
                         console.log('adding prefix to content')
                         content = phasePrefixAdditions.createSections + content;
                     }
+
+                    if (typeof content === 'object' && !Array.isArray(content)) {
+                        console.log("(2) Attempting to fix createSections by wrapping obj in array")
+                        content = [content];
+                        console.log(content)
+                    }
+
                     console.log(content)
                 }
 
@@ -399,20 +416,20 @@ function makeRequest(payload) {
 
             addTokenUsageToActivity(usage, undefined, latestTimerId())
 
-            const needed_changes = content.needed_changes
+            const requirements_met = content.requirements_met
 
             console.log(content)
 
-            if (!needed_changes) {
+            if (requirements_met) {
                 newActivity('Layout conforms with document requirements')
                 beginSearches();
             } else {
                 newActivity('Modified layout to follow document requirements')
-                addToModalMessage('\n\nI modified the layout to fulfill formatting requirements: ' + content.changes_explanation.formatting_changes)
-                addToModalMessage('\n\nI modified the layout to fulfill content requirements: ' + content.changes_explanation.content_changes)
+                addToModalMessage('\n\nI modified the layout to fulfill formatting requirements: ' + content.explanation.format)
+                addToModalMessage('\n\nI modified the layout to fulfill content requirements: ' + content.explanation.content)
                 priorPlans.push(plan)
-                plan = content.modified_layout
-                planChanges = content.changes_explanation
+                plan = content.rewritten_layout
+                planChanges = content.explanation
                 addPlanToOutline(plan)
                 nextPhase(); // iterate again
             }
@@ -592,10 +609,8 @@ function updateModalContent(fullContent) {
 }
 
 function startTimer() {
-    console.log("Starting timer..."); // Debug log
-    if (timer) { // Check if timer is already set
-        console.log("Clearing existing timer:", timer); // Debug log
-        clearInterval(timer); // Clear the existing timer
+    if (timer) { 
+        clearInterval(timer);
     }
     timer = setInterval(() => {
         elapsedTime++;
@@ -605,15 +620,11 @@ function startTimer() {
     setTimeout(() => {
         $('.progress-bar').fadeIn();   
     }, 1000);
-    console.log("Timer started with ID:", timer); // Debug log
 }
 
 function stopTimer() {
-    console.log("Stopping timer..."); // Debug log
-    console.log("Timer before clear:", timer); // Debug log
     clearInterval(timer);
-    timer = null; // Reset timer to null after clearing
-    console.log("Timer after clear:", timer); // Debug log
+    timer = null;
 }
 
 function updateRuntimeDisplay() {

@@ -2,11 +2,6 @@ from googlesearch import search
 import requests
 from fake_useragent import UserAgent
 
-ua = UserAgent()
-
-def generate_user_agent():
-    return ua.random
-
 def get_links(keywords):
     try:
         results = []
@@ -19,13 +14,16 @@ def get_links(keywords):
             print(f"[INFO] Too many requests to Google.")
             return {'result': 429}
         raise
+    except requests.exceptions.ReadTimeout as e:
+        print(f"[ERROR] Request timed out while searching for keywords: {keywords}")
+        return {'result': 'timeout'}
 
 from newspaper import Article, ArticleException, Config
 
 config = Config()
 
 def get_text(url):
-    config.browser_user_agent = generate_user_agent()
+    config.browser_user_agent = UserAgent().random
     article = Article(url, config=config)
     try:
         article.download()
@@ -61,7 +59,6 @@ class RequestHandler(SimpleHTTPRequestHandler):
                 self.wfile.write(json.dumps(links).encode())
                 return
             
-            # links = links[:10]
             print('Found links: ', links)            
             self.wfile.write(json.dumps({'result': links}).encode())
 

@@ -61,41 +61,11 @@ async function beginSearches() {
         newActivity('Finding information for: ' + section.section_title)
         $('.current-section').html(`Working on section ${count}/${plan.length}: <span style="color: rgb(168, 168, 168)">${section.section_title}</span>`)
 
+        $('.current-search').show();
         $('.current-search-desc').text(`Researching ${section.section_title}`)
         // $('.current-search-keywords').text(`Searching ${section.search_keywords}...`)
-
-        // let links;
-        // if (count === 1) {
-
-        //     newActivity('Getting relevant links for: ' + section.section_title);
-
-        //     let linksData = await getLinks(section.search_keywords);
-        //     links = linksData.result;
-
-        //     if (links === 429) {
-        //         newActivity('Too many requests to Google search.')
-        //         $('.activity-working').removeClass('activity-working').css('color', '#ff3c3c')
-        //         return;
-        //     }
-
-        //     newActivity(`Searching ${links.length} links`);
-
-        //     appendURLS(links)
-        //     setPhase('fetchingLinks');
-
-        //     await getTexts(links);
-
-        // }
-
-
-        // let relevantAndNeededSources;
-        // if (count !== 0) {
+  
         let relevantAndNeededSources = await getRelevantAndNeededSources(section.description, false)
-        // } else {
-        //     relevantAndNeededSources = {
-        //         'required_info_description': 
-        //     }
-        // }
 
         // console.log(relevantAndNeededSources)
 
@@ -109,11 +79,26 @@ async function beginSearches() {
                 console.log(relevantAndNeededSources)
             }
 
-            newActivity(`\n\nI need more information on ${relevantAndNeededSources.required_info_description}`)
+            newActivity(`\n\n${relevantAndNeededSources.required_info_description}`)
             newActivity(`Searching phrase: ${relevantAndNeededSources.search_term}`)
 
             links = await getLinks(search_term)
             links = links.result
+
+            if (links === 429) {
+                newActivity('Too many requests to Google search.')
+                $('.activity-working').removeClass('activity-working').css('color', '#ff3c3c')
+                return;
+            } else if (links === 'timeout') {
+                newActivity('Getting links timed out, trying again.')
+                links = await getLinks(search_term);
+                if (links === 429) {
+                    newActivity('Too many requests to Google search.');
+                    $('.activity-working').removeClass('activity-working').css('color', '#ff3c3c');
+                    return;
+                }
+            }
+
             newActivity(`Searching ${links.length} links`);
 
             appendURLS(links)
@@ -138,8 +123,9 @@ async function beginSearches() {
         
         }
 
-        newActivity(`Context validated`)
+        $('.current-search').hide();
 
+        newActivity(`Context validated`)
         newActivity(`Selecting sources`)
         addToModalMessage(`\n\nI'm choosing sources relevant to these requirements: ${section.description}`)
 
@@ -678,6 +664,27 @@ async function categorizeSource(index, source) {
                 addToModalMessage(`\n\n${url} contains ${content.description.charAt(0).toLowerCase() + content.description.slice(1)}`);
                 sources[index]['description'] = content.description;
                 $('.sources-count').text(Object.keys(sources).length + ' sources');
+                $(`.source[href="${source.url}"]`).find('.source-description').text(content.description).hide();
+                
+                $(`.source[href="${source.url}"]`).on('mousedown', function(event) {
+                    if (event.shiftKey) {
+                        window.open(source.url, '_blank', 'noopener,noreferrer');
+                    } else {
+                        const $description = $(this).find('.source-description');
+                        if (!$description.is(':visible')) {
+                            $description.slideDown('fast');
+                            $(this).addClass('desc-shown');
+                        }
+                    }
+                })
+                .on('mouseup', function() {
+                    const $description = $(this).find('.source-description');
+                    if (!window.getSelection().toString() && $description.is(':visible') && !$description.is(':animated')) {
+                        $description.slideUp('fast');
+                        $(this).removeClass('desc-shown');
+                    }
+                });
+
                 return content.description;
             }
         } catch (error) {
@@ -746,12 +753,13 @@ async function getTexts(links) {
                             validResponses++;
                             allData.push(result);
                             
-                            const $sourceElm = $(`<a class="source flex flex-col" href="${link}" target="_blank">
+                            const $sourceElm = $(`<div class="source flex flex-col" href="${link}" target="_blank">
                                 <div class="source-title">${result.title}</div>
                                 <div class="source-url">${getBaseUrl(link)}</div>
                                 <div class="source-length">${result.length.toLocaleString()} chars /
                                     ${result.text.split(/\s+/).length.toLocaleString()} words</div>
-                            </a>`);
+                                <div class="source-description">Analyzing...</div>
+                            </div>`);
 
                             $('.sources').children().first().after($sourceElm);
                         }

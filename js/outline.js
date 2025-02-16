@@ -28,10 +28,10 @@ function addPlanToOutline() {
             const $desc = $(this).closest('.flex-col').find('.outline-section-desc, .outline-section-keywords');
             const $dropdown = $(this).find('.section-dropdown');
             if ($desc.is(':visible')) {
-                $desc.slideUp();
+                $desc.slideUp('fast');
                 $dropdown.text('▼ ');
             } else {
-                $desc.slideDown();
+                $desc.slideDown('fast');
                 $dropdown.text('▲ ');
             }
         })
@@ -52,7 +52,7 @@ function addPlanToOutline() {
     });
 
     if (Object.keys(planChanges).length !== 0) {
-        $(`.iteration-why`).append($(`<div data-plan-number="${planNum}" style="white-space: pre-wrap;"><span>${planChanges.formatting_changes}\n\n${planChanges.content_changes}</span>
+        $(`.iteration-why`).append($(`<div data-plan-number="${planNum}" style="white-space: pre-wrap;"><span>${planChanges.format}\n\n${planChanges.content}</span>
         </div>`));
     }
 

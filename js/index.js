@@ -117,7 +117,7 @@ function disableBar() {
     searching = true;
     $('textarea').val('Deeply researching...').css('height', '').prop('disabled', true).css('pointer-events', 'none').css('text-align', 'center');
     $('.search-arrow').text('■').css('background-color', '#d4d4d4')
-    $('.search-wrapper').css('cursor', 'default').css('background-color', 'rgb(52, 52, 52)')
+    $('.search-wrapper').css('cursor', 'default').css('background-color', 'rgb(50, 50, 50)')
     $('.throbber-wrapper').fadeIn();
 }
 

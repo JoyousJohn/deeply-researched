@@ -614,13 +614,13 @@ textarea::-webkit-scrollbar {
     display: flex;
     flex-direction: column;
     row-gap: 1.5rem;
-    margin: 1.5rem;
+    margin: 0.8rem 1.5rem;
 }
 
 .sources-count {
     font-size: 1.4rem;
     color: white;
-    padding: 0.5rem 0;
+    text-align: center;
 }
 
 .source {
@@ -629,10 +629,11 @@ textarea::-webkit-scrollbar {
     padding: 1.5rem 2rem;
     text-decoration: none;
     transition: 100ms;
+    cursor: pointer;
 }
 
-.source:hover {
-    background-color: #212121;
+.source:not(.desc-shown):hover {
+    background-color: #354e98;
 }
 
 .source-title {
@@ -648,6 +649,13 @@ textarea::-webkit-scrollbar {
 .source-length {
     font-size: 1.3rem;
     color: rgb(167, 167, 167);
+}
+
+.source-description {
+    font-size: 1.4rem;
+    color: rgb(209, 209, 209);
+    margin-top: 1.5rem;
+    line-height: 1.4;
 }
 
 .phase {
