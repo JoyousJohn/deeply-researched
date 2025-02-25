@@ -23,16 +23,17 @@ let decoderModelId, decoderBase, decoderKey
 let braveKey
 
 function populateInputs(isInitial) {
-
-    // Loop through allKeySettings and populate inputs for each model using index
     Object.keys(settings.allKeySettings).forEach((modelId, index) => {
         if (isInitial && modelId !== '1') {
             createModelClone();
         }
         const modelValues = settings.allKeySettings[modelId];
-        const modelElement = $(`[data-model="${modelId}"]`); // Select the parent element with data-model=modelId
+        const modelElement = $(`[data-model="${modelId}"]`);
         for (const key in modelValues) {
-            modelElement.find(`.api-key-input[data-key="${key}"]`).val(modelValues[key]); // Find inputs within the model element
+            modelElement.find(`.api-key-input[data-key="${key}"]`).val(modelValues[key]);
+        }
+        if (modelId !== '1') {
+            modelElement.find('.delete-model-button').css('visibility', 'visible');
         }
     });
     $('#max-sources').val(settings.maxSources);
@@ -73,7 +74,7 @@ function confirmSettings(elm) {
 const providerMap = {
     'openai': 'OpenAI',
     'googleapis': 'Google',
-    'anthrophic': 'Anthropic',
+    'anthropic': 'Anthropic',
     'deepinfra': 'DeepInfra',
     'sambanova': 'SambaNova',
     'azure': 'Azure',
@@ -243,6 +244,11 @@ $(document).ready(function() {
             }, 2000);
         }
     });
+
+    $(document).on('click', '.delete-model-button', function() {
+        const modelId = $(this).closest('[data-model]').attr('data-model');
+        deleteModel(modelId);
+    });
 })
 
 $(document).keydown(function(event) {
@@ -250,15 +256,15 @@ $(document).keydown(function(event) {
         $('.settings-wrapper').scrollTop(0).hide();
         $('.base-presets').hide();
     }
-    // else if (event.key === "S" || event.key === "s") {
-    //     if ($(document.activeElement).is('textarea')) return
-    //     if ($('.settings-wrapper').is(':visible') && !$(document.activeElement).is('input')) {
-    //         $('.settings-wrapper').scrollTop(0).hide();
-    //     } else if (!$(document.activeElement).is('input')) {
-    //         $('.settings-wrapper').show();
-    //         populateInputs();
-    //     }
-    // }
+    else if (event.key === "S" || event.key === "s") {
+        if ($(document.activeElement).is('textarea')) return
+        if ($('.settings-wrapper').is(':visible') && !$(document.activeElement).is('input')) {
+            $('.settings-wrapper').scrollTop(0).hide();
+        } else if (!$(document.activeElement).is('input')) {
+            $('.settings-wrapper').show();
+            populateInputs();
+        }
+    }
     else if (event.key === "u" || event.key === "U") {
         if ($(document.activeElement).is('textarea')) return
         $('#stats-toggle').prop('checked', function(i, value) {
@@ -299,6 +305,81 @@ function selectModel(modelNum) {
 
     setGlobalSelectedModelVars(modelNum)
 }
+function deleteModel(modelId) {
+    if (modelId === '1') {
+        return;
+    }
+    
+    console.log("Deleting model ID:", modelId);
+    console.log("Before deletion, all models:", Object.keys(settings.allKeySettings));
+    
+    const higherModelElements = [];
+    const modelIdNum = parseInt(modelId);
+    const allModelIds = Object.keys(settings.allKeySettings).map(id => parseInt(id)).sort((a, b) => a - b);
+    
+    for (let i = modelIdNum + 1; i <= Math.max(...allModelIds); i++) {
+        const $element = $(`[data-model="${i}"]`);
+        if ($element.length) {
+            const modelValues = {};
+            $element.find('.api-key-input').each(function() {
+                const key = $(this).data('key');
+                const value = $(this).val();
+                modelValues[key] = value;
+            });
+            
+            higherModelElements.push({
+                id: i,
+                values: modelValues,
+                selected: $element.find('.decoder-bullet').hasClass('bullet-selected')
+            });
+        }
+    }
+    
+    console.log("Higher model elements to preserve:", higherModelElements);
+    
+    delete settings.allKeySettings[modelId];
+    
+    $(`[data-model="${modelId}"]`).remove();
+    
+    higherModelElements.forEach(model => {
+        const oldId = model.id;
+        const newId = oldId - 1;
+        
+        settings.allKeySettings[newId] = settings.allKeySettings[oldId] || model.values;
+        delete settings.allKeySettings[oldId];
+        
+        const $element = $(`[data-model="${oldId}"]`);
+        if ($element.length) {
+            $element.attr('data-model', newId);
+            $element.find('.decoder-bullet-wrapper')
+                .attr('data-model', newId)
+                .off('click')
+                .click(function() {
+                    selectModel(newId);
+                    modelSelectionPopup();
+                });
+                
+            if (model.selected) {
+                selectModel(newId);
+            }
+        }
+    });
+    
+    if (settings.selectedDecoderModelId == modelId) {
+        selectModel('1');
+    } else if (parseInt(settings.selectedDecoderModelId) > modelIdNum) {
+        selectModel(parseInt(settings.selectedDecoderModelId) - 1);
+    }
+    
+    localStorage.setItem('settings', JSON.stringify(settings));
+    
+    console.log("After deletion, all models:", Object.keys(settings.allKeySettings));
+    
+    $('.saved-message').text("Model deleted!").slideDown('fast');
+    setTimeout(function() {
+        $('.saved-message').slideUp('fast');
+    }, 3000);
+}
 
 function createModelClone() {
     const $clone = $('.decoder-template').clone().find('input').val('').end();
@@ -327,6 +408,8 @@ function createModelClone() {
         $(this).closest('.base-presets').prev().val($(this).attr('data-base'))
         $('.base-presets').slideUp('fast');
     })
+    
+    $clone.find('.delete-model-button').css('visibility', 'visible')
 
     $('.decoder-template').parent().children().last().before($clone);
 }

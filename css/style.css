@@ -429,7 +429,7 @@ textarea::-webkit-scrollbar {
     opacity: 0.5;
 }
 
-.confirm-button, .confirm-max-sources {
+.confirm-button, .confirm-max-sources, .delete-model-button {
     background-color: rgb(220, 220, 220);
     border: 2px solid rgb(220, 220, 220);
     color: rgb(27, 27, 27);
@@ -447,6 +447,18 @@ textarea::-webkit-scrollbar {
     color: white;
 }
 
+.delete-model-button {
+    color: rgb(222, 80, 80);
+    background-color: transparent;
+    border: none;
+    transition: 100ms;
+}
+
+.delete-model-button:hover {
+    background-color: rgb(188, 68, 68);
+    color: white;
+}
+
 .input-wrapper-adv {
     display: grid;
     grid-template-columns: 1fr 1.2fr 1.4fr auto;
@@ -456,7 +468,7 @@ textarea::-webkit-scrollbar {
 
 .input-wrapper-adv-2 {
     display: grid;
-    grid-template-columns: auto 1fr 1.2fr 1.4fr auto;
+    grid-template-columns: auto 1fr 1.2fr 1.4fr auto auto;
     align-items: center;
     column-gap: 0.5rem;
 }
